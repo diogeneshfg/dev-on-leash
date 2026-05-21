@@ -102,12 +102,12 @@ Create the `.claude/` directory if it does not exist.
 
 ## Step 4 — Copy the project-agnostic layer
 
-Invoke the plugin's init script to drop the agnostic layer into the target project. Use the script matching the OS:
+Invoke the plugin's init script to drop the agnostic layer into the target project. The script **requires** the target repo path as its first argument — omitting it causes the script to exit 1 with an error. Since the skill runs from the target project root, pass `.` as the target path. Use the script matching the OS:
 
-- POSIX: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/init.sh`
-- Windows: `pwsh ${CLAUDE_PLUGIN_ROOT}/scripts/init.ps1`
+- POSIX: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/init.sh" .`
+- Windows: `pwsh "${CLAUDE_PLUGIN_ROOT}/scripts/init.ps1" .`
 
-This copies `scripts/harness/`, a `docs/plans/` skeleton, and `templates/task-schema.md` + `templates/plan-template.md` into the target project. Run it from the target project root. If the init script is not yet present in the installed plugin version, report that the agnostic layer could not be copied and tell the user to update the plugin — do not hand-copy files.
+This copies `scripts/harness/`, `docs/task-schema.md`, `docs/plan-template.md`, and an empty `docs/plans/` directory into the target project. Run it from the target project root. If the init script is not yet present in the installed plugin version, report that the agnostic layer could not be copied and tell the user to update the plugin — do not hand-copy files.
 
 ## Step 5 — Report
 
@@ -115,5 +115,5 @@ Tell the user concisely:
 
 - Which files were created or updated (`CLAUDE.md`, `AGENTS.md`, `.claude/settings.json`), and which (if any) were written as `.dev-on-leash-proposed` pending manual merge.
 - Which optional blocks were kept or dropped (Domain rules, UI rules).
-- That the agnostic layer was copied: `scripts/harness/`, `docs/plans/`, `templates/task-schema.md`, `templates/plan-template.md`.
+- That the agnostic layer was copied: `scripts/harness/`, `docs/task-schema.md`, `docs/plan-template.md`, and an empty `docs/plans/` directory.
 - **Next step:** write a plan into `docs/plans/` (use `superpowers:writing-plans`), then execute it task-by-task with the `execute-plan-task` skill.
