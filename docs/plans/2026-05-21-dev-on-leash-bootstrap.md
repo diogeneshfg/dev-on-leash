@@ -213,7 +213,7 @@ The `.tmpl` files separate **fixed process prose** (copied as-is into every proj
 
 **Step 4:** Commit: `feat(templates): add CLAUDE/AGENTS/settings skeletons with placeholders`.
 
-- [ ] **Task 5 complete**
+- [x] **Task 5 complete**
 
 <!-- task-meta
 id: T05
