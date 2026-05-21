@@ -187,7 +187,7 @@ acceptance: null
 
 Commit: `feat(templates): add task-schema and plan-template`.
 
-- [ ] **Task 4 complete**
+- [x] **Task 4 complete**
 
 <!-- task-meta
 id: T04
