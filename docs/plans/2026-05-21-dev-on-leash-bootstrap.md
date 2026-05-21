@@ -83,7 +83,7 @@ Repo `dev-on-leash` already exists (created + `git remote origin` set, branch `m
 
 **Step 5:** Commit: `feat(plugin): add plugin + marketplace manifests`.
 
-- [ ] **Task 1 complete**
+- [x] **Task 1 complete**
 
 <!-- task-meta
 id: T01
@@ -108,7 +108,7 @@ acceptance: null
 
 **Step 1:** Copy the files. **Step 2:** Confirm `python scripts/harness/validate_plan.py docs/plans/2026-05-21-dev-on-leash-bootstrap.md` runs (it will report task count once `pyyaml` is installed in Task 3 — for now just confirm no `ImportError` other than yaml). **Step 3:** Commit: `feat(harness): vendor proven harness scripts from bluenode`.
 
-- [ ] **Task 2 complete**
+- [x] **Task 2 complete**
 
 <!-- task-meta
 id: T02
