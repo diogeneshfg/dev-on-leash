@@ -454,7 +454,7 @@ Verify the plugin actually installs and works:
 3. Run `bootstrap-dev-leash` against a throwaway empty repo; confirm `CLAUDE.md`, `AGENTS.md`, `.claude/settings.json`, and `scripts/harness/` are generated and the harness tests run there.
 4. Record the result in `CHANGELOG.md`.
 
-- [ ] **Task 15 complete**
+- [x] **Task 15 complete**
 
 <!-- task-meta
 id: T15
