@@ -414,7 +414,7 @@ A GitHub Actions workflow that, on push and PR, runs an `ubuntu-latest` job whic
 
 Commit: `ci: add self-CI (harness tests, manifest + skill/agent lint)`.
 
-- [ ] **Task 13 complete**
+- [x] **Task 13 complete**
 
 <!-- task-meta
 id: T13
