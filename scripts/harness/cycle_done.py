@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Aggregate gate for onda completion.
+"""Aggregate gate for cycle completion.
 
 Checks:
   - No pending `- [ ]` checkboxes in the plan file.
@@ -92,7 +92,7 @@ def append_changelog(plan_path: Path, changelog_path: Path) -> bool:
     if entry_header in text:
         print(f"OK: changelog already records {slug} for {today}", file=sys.stderr)
         return False
-    entry = f"\n{entry_header}\n- Onda closed: {_plan_title(plan_path)}\n"
+    entry = f"\n{entry_header}\n- Cycle closed: {_plan_title(plan_path)}\n"
     if "## [Unreleased]" in text:
         text = text.replace("## [Unreleased]", "## [Unreleased]" + entry, 1)
     else:

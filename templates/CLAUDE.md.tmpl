@@ -20,7 +20,7 @@ Steps:
 
 1. State explicitly: "I'll plan before touching code."
 2. Invoke one of (in order of preference):
-   - `superpowers:writing-plans` — produces a written plan in `docs/plans/YYYY-MM-DD-<slug>.md`. Best for Onda-style work.
+   - `superpowers:writing-plans` — produces a written plan in `docs/plans/YYYY-MM-DD-<slug>.md`. Best for cycle-style work.
    - `superpowers:brainstorming` — only when the user's own intent is unclear and needs exploration first.
 3. Only after the plan exists, proceed to execution.
 
@@ -30,10 +30,10 @@ When in doubt, ask one short question: "Does this look like plan-first or direct
 
 ---
 
-## Onda-style delivery
+## Cycle-style delivery
 
-Features ship as numbered ondas with a written plan in `docs/plans/` before any code. Plans live ~30–60 tasks each. Never start an Onda without one.
+Features ship as numbered cycles with a written plan in `docs/plans/` before any code. Plans live ~30–60 tasks each. Never start a cycle without one.
 
-**Onda done = all of**: zero pending tasks in plan, integration suite green (0 failed), full test suite green, `migrate-smoke` green if migrations changed, pre-commit clean, manual smoke of the user-visible feature, branch merged to main.
+**Cycle done = all of**: zero pending tasks in plan, integration suite green (0 failed), full test suite green, `migrate-smoke` green if migrations changed, pre-commit clean, manual smoke of the user-visible feature, branch merged to main.
 
-Use `scripts/harness/onda_done.py --plan <file>` to close an onda. Use `scripts/harness/validate_plan.py <file>` to validate a plan before starting it.
+Use `scripts/harness/cycle_done.py --plan <file>` to close a cycle. Use `scripts/harness/validate_plan.py <file>` to validate a plan before starting it.

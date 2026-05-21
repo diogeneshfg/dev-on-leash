@@ -2,16 +2,16 @@
 
 All notable changes to dev-on-leash are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/). Entries under `[Unreleased]`
-are appended automatically by `scripts/harness/onda_done.py` when an Onda
+are appended automatically by `scripts/harness/cycle_done.py` when a Cycle
 closes green; edit them by hand only to add detail.
 
 ## [Unreleased]
 ### 2026-05-21 — 2026-05-21-dev-on-leash-bootstrap
-- Onda closed: dev-on-leash Bootstrap — Implementation Plan
+- Cycle closed: dev-on-leash Bootstrap — Implementation Plan
 
 
 Bootstrap of the 0.1.0 release: portable Claude Code plugin packaging the
-disciplined agentic-development harness (Onda lifecycle, skills, hooks,
+disciplined agentic-development harness (Cycle lifecycle, skills, hooks,
 CHANGELOG automation).
 
 ### Task 15 — install smoke test

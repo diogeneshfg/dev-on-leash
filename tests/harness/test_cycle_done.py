@@ -8,7 +8,7 @@ import pytest
 pytestmark = pytest.mark.unit
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-ONDA_DONE = REPO_ROOT / "scripts" / "harness" / "onda_done.py"
+CYCLE_DONE = REPO_ROOT / "scripts" / "harness" / "cycle_done.py"
 
 
 def write_plan(tmp_path: Path, all_done: bool) -> Path:
@@ -35,7 +35,7 @@ def write_plan(tmp_path: Path, all_done: bool) -> Path:
 def test_exit_1_when_pending_tasks(tmp_path):
     plan = write_plan(tmp_path, all_done=False)
     r = subprocess.run(
-        [sys.executable, str(ONDA_DONE), "--plan", str(plan), "--skip-suite"],
+        [sys.executable, str(CYCLE_DONE), "--plan", str(plan), "--skip-suite"],
         capture_output=True,
         text=True,
     )
@@ -50,7 +50,7 @@ def test_exit_0_when_all_clear(tmp_path):
         "HARNESS_CHANGELOG_PATH": str(tmp_path / "CHANGELOG.md"),
     }
     r = subprocess.run(
-        [sys.executable, str(ONDA_DONE), "--plan", str(plan), "--skip-suite"],
+        [sys.executable, str(CYCLE_DONE), "--plan", str(plan), "--skip-suite"],
         env=env,
         capture_output=True,
         text=True,
@@ -66,7 +66,7 @@ def test_changelog_appended_on_green_close(tmp_path):
         "HARNESS_CHANGELOG_PATH": str(changelog),
     }
     r = subprocess.run(
-        [sys.executable, str(ONDA_DONE), "--plan", str(plan), "--skip-suite"],
+        [sys.executable, str(CYCLE_DONE), "--plan", str(plan), "--skip-suite"],
         env=env,
         capture_output=True,
         text=True,
@@ -74,7 +74,7 @@ def test_changelog_appended_on_green_close(tmp_path):
     assert r.returncode == 0, r.stderr
     assert changelog.exists()
     text = changelog.read_text(encoding="utf-8")
-    assert "Onda closed" in text
+    assert "Cycle closed" in text
     assert plan.stem in text
 
 
@@ -85,7 +85,7 @@ def test_changelog_append_is_idempotent(tmp_path):
         **__import__("os").environ,
         "HARNESS_CHANGELOG_PATH": str(changelog),
     }
-    cmd = [sys.executable, str(ONDA_DONE), "--plan", str(plan), "--skip-suite"]
+    cmd = [sys.executable, str(CYCLE_DONE), "--plan", str(plan), "--skip-suite"]
     subprocess.run(cmd, env=env, capture_output=True, text=True)
     subprocess.run(cmd, env=env, capture_output=True, text=True)
     text = changelog.read_text(encoding="utf-8")
@@ -99,7 +99,7 @@ def test_force_logs_exception(tmp_path):
     r = subprocess.run(
         [
             sys.executable,
-            str(ONDA_DONE),
+            str(CYCLE_DONE),
             "--plan",
             str(plan),
             "--skip-suite",

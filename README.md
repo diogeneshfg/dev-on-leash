@@ -11,7 +11,7 @@ that runs in CI and git hooks.
 ## What's in the box
 
 - **Harness scripts** (`scripts/harness/`) — `validate_plan`, `run_task`,
-  `onda_done`, `plan_schedule` (parallel scheduler), `check_freshness`,
+  `cycle_done`, `plan_schedule` (parallel scheduler), `check_freshness`,
   baseline/regression tooling. CI-executable, no Claude Code required.
 - **Skills** (`skills/`) — `bootstrap-dev-leash` (interviews a project and
   generates a tailored `CLAUDE.md` + `AGENTS.md`) and `execute-plan-task`.
