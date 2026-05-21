@@ -270,7 +270,8 @@ id: T07
 touches:
   - skills/bootstrap-dev-leash/SKILL.md
 depends: [T05]
-verify: python -c "import pathlib,sys; t=pathlib.Path('skills/bootstrap-dev-leash/SKILL.md').read_text(encoding='utf-8'); sys.exit(0 if 'name: bootstrap-dev-leash' in t else 1)"
+verify: |-
+  python -c "import pathlib,sys; t=pathlib.Path('skills/bootstrap-dev-leash/SKILL.md').read_text(encoding='utf-8'); sys.exit(0 if 'name: bootstrap-dev-leash' in t else 1)"
 acceptance: null
 -->
 
@@ -311,7 +312,8 @@ id: T08
 touches:
   - agents/plan-reviewer.md
 depends: [T02]
-verify: python -c "import pathlib,sys; t=pathlib.Path('agents/plan-reviewer.md').read_text(encoding='utf-8'); sys.exit(0 if 'name: plan-reviewer' in t else 1)"
+verify: |-
+  python -c "import pathlib,sys; t=pathlib.Path('agents/plan-reviewer.md').read_text(encoding='utf-8'); sys.exit(0 if 'name: plan-reviewer' in t else 1)"
 acceptance: null
 -->
 
@@ -328,7 +330,8 @@ id: T09
 touches:
   - agents/tdd-evidence-checker.md
 depends: [T08]
-verify: python -c "import pathlib,sys; t=pathlib.Path('agents/tdd-evidence-checker.md').read_text(encoding='utf-8'); sys.exit(0 if 'name: tdd-evidence-checker' in t else 1)"
+verify: |-
+  python -c "import pathlib,sys; t=pathlib.Path('agents/tdd-evidence-checker.md').read_text(encoding='utf-8'); sys.exit(0 if 'name: tdd-evidence-checker' in t else 1)"
 acceptance: null
 -->
 
@@ -345,7 +348,8 @@ id: T10
 touches:
   - agents/isolation-reviewer.md
 depends: [T09]
-verify: python -c "import pathlib,sys; t=pathlib.Path('agents/isolation-reviewer.md').read_text(encoding='utf-8'); sys.exit(0 if 'name: isolation-reviewer' in t else 1)"
+verify: |-
+  python -c "import pathlib,sys; t=pathlib.Path('agents/isolation-reviewer.md').read_text(encoding='utf-8'); sys.exit(0 if 'name: isolation-reviewer' in t else 1)"
 acceptance: null
 -->
 
@@ -362,7 +366,8 @@ id: T11
 touches:
   - agents/verification-gate.md
 depends: [T10]
-verify: python -c "import pathlib,sys; t=pathlib.Path('agents/verification-gate.md').read_text(encoding='utf-8'); sys.exit(0 if 'name: verification-gate' in t else 1)"
+verify: |-
+  python -c "import pathlib,sys; t=pathlib.Path('agents/verification-gate.md').read_text(encoding='utf-8'); sys.exit(0 if 'name: verification-gate' in t else 1)"
 acceptance: null
 -->
 
