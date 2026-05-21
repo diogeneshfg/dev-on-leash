@@ -433,7 +433,7 @@ Then close the Onda: with all prior checkboxes ticked, run `python scripts/harne
 
 Commit: `docs: add CHANGELOG; close dev-on-leash bootstrap Onda`.
 
-- [ ] **Task 14 complete**
+- [x] **Task 14 complete**
 
 <!-- task-meta
 id: T14
