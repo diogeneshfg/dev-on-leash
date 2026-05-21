@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install pyyaml pytest
+
+      - name: Run harness tests
+        run: python -m pytest tests/harness -q
+
+      - name: Validate manifests (JSON parse)
+        run: |
+          python -c "
+          import json
+          json.load(open('.claude-plugin/plugin.json'))
+          json.load(open('.claude-plugin/marketplace.json'))
+          print('Manifests OK')
+          "
+
+      - name: Lint SKILL.md and agents frontmatter
+        run: |
+          python -c "
+          import sys, pathlib, yaml
+
+          errors = []
+          files = list(pathlib.Path('skills').rglob('SKILL.md')) + list(pathlib.Path('agents').glob('*.md'))
+          print(f'Checking {len(files)} file(s):', [str(f) for f in files])
+
+          for f in files:
+              text = f.read_text(encoding='utf-8')
+              if not text.startswith('---'):
+                  errors.append(f'{f}: does not start with ---')
+                  continue
+              parts = text.split('---', 2)
+              if len(parts) < 3:
+                  errors.append(f'{f}: no closing --- for frontmatter')
+                  continue
+              try:
+                  fm = yaml.safe_load(parts[1])
+              except yaml.YAMLError as e:
+                  errors.append(f'{f}: YAML parse error: {e}')
+                  continue
+              if not isinstance(fm, dict) or 'name' not in fm:
+                  errors.append(f'{f}: missing name: key in frontmatter')
+
+          if errors:
+              for msg in errors:
+                  print(msg, file=sys.stderr)
+              sys.exit(1)
+          print('Frontmatter lint OK')
+          "
+
+      - name: Validate plans
+        run: |
+          python -c "
+          import subprocess, sys, pathlib
+
+          plans = sorted(pathlib.Path('docs/plans').glob('*.md'))
+          if not plans:
+              print('No plan files found', file=sys.stderr)
+              sys.exit(1)
+          print(f'Validating {len(plans)} plan(s):', [str(p) for p in plans])
+
+          failed = []
+          for p in plans:
+              result = subprocess.run(
+                  [sys.executable, 'scripts/harness/validate_plan.py', str(p)],
+                  capture_output=True, text=True
+              )
+              print(f'{p}: exit={result.returncode}')
+              if result.stdout:
+                  print(result.stdout, end='')
+              if result.stderr:
+                  print(result.stderr, end='', file=sys.stderr)
+              if result.returncode != 0:
+                  failed.append(str(p))
+
+          if failed:
+              print(f'Validation failed for: {failed}', file=sys.stderr)
+              sys.exit(1)
+          print('All plans valid')
+          "
