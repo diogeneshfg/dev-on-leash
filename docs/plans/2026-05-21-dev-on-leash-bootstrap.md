@@ -385,7 +385,7 @@ Both scripts must be idempotent and print a summary of what was copied. Keep the
 
 **Step:** Smoke-test `init.sh` against a throwaway temp dir and confirm `scripts/harness/run_task.py` lands there. Commit: `feat(scripts): add init.ps1 / init.sh for the agnostic layer`.
 
-- [ ] **Task 12 complete**
+- [x] **Task 12 complete**
 
 <!-- task-meta
 id: T12
