@@ -23,6 +23,9 @@ jobs:
       - name: Run harness tests
         run: python -m pytest tests/harness -q
 
+      - name: End-to-end smoke test
+        run: python scripts/smoke_e2e.py
+
       - name: Validate manifests (JSON parse)
         run: |
           python -c "
