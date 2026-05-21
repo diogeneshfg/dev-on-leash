@@ -160,7 +160,7 @@ testpaths = ["tests"]
 
 **Step 4:** Commit: `test(harness): vendor harness tests + minimal pyproject`.
 
-- [ ] **Task 3 complete**
+- [x] **Task 3 complete**
 
 <!-- task-meta
 id: T03
