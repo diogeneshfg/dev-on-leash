@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      {{TEST_RUNNER_COMMANDS}},
+      {{LINT_COMMANDS}},
+      {{TYPECHECK_COMMANDS}},
+      {{BUILD_COMMANDS}},
+      "Bash(git status)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)",
+      "Bash(git branch*)",
+      "Bash(pre-commit run*)",
+      "Bash(python scripts/harness/*)"
+    ]
+  }
+}

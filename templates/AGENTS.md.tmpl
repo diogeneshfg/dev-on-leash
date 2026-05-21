@@ -1,0 +1,126 @@
+# {{PROJECT_NAME}} — Agent Operating Manual
+
+{{PROJECT_NAME}} is {{STACK_DESCRIPTION}}.
+
+This file orients automated agents (Claude Code, CI bots, code-review agents) working on the codebase. It describes the mandatory development discipline and how to run the test suites locally.
+
+---
+
+## Branch discipline (mandatory)
+
+> Every implementation MUST be done on a new branch created from `main` (or `master`). Never commit implementation changes directly to `main`/`master`.
+>
+> This ensures that in-progress code does not break the main branch and that every change passes CI before being integrated.
+
+Standard flow before any change:
+
+1. `git checkout main && git pull` — start from the latest state.
+2. `git checkout -b <type>/<short-description>` — e.g. `feat/two-step-upload`, `fix/null-pointer`, `refactor/key-normalizer`.
+3. Implement following TDD (see section below).
+4. Open PR — CI runs mandatory jobs; merge only after green.
+
+Exceptions (direct commit permitted only for):
+
+- Edits to `AGENTS.md`, `README.md`, or other purely-documentary `*.md` files.
+- Editor/ignore-file configuration tweaks with no runtime effect.
+
+Any change under source or test directories, build configuration, migrations, or CI workflows **requires** a dedicated branch.
+
+---
+
+## Test-Driven Development (mandatory)
+
+> Every new feature, bugfix, or behavior change MUST follow Red → Green → Refactor:
+> 1. **Red** — write a failing test that demonstrates the desired behavior or reproduces the bug.
+> 2. **Green** — write the minimum production code to make the test pass.
+> 3. **Refactor** — clean up while keeping the bar green.
+>
+> PRs touching source files without corresponding test changes will be flagged by the `tdd-evidence` CI job (advisory in Phase 1, blocking from Phase 2).
+
+How to run tests:
+
+{{TEST_COMMANDS}}
+
+---
+
+## Coverage thresholds
+
+Coverage is enforced progressively. The current phase determines the bar that CI fails under.
+
+{{COVERAGE_TARGETS}}
+
+Thresholds are enforced via the test runner's coverage configuration. Bumping the bar happens in the same commit that closes a phase.
+
+---
+
+## When NOT to use TDD
+
+Be honest: not every change needs a test.
+
+- Pure dependency bumps (lockfile-only changes) — no.
+- Documentation-only changes (`*.md`, `README`, `docs/`) — no.
+- Pure tooling/config tweaks that have no runtime effect (e.g. editor settings, ignore-file additions) — no.
+
+Anything that touches behavior — a route, a hook, a domain method, a schema, a model, a component's render output, a background task — **does** need a test. If you're unsure, write one.
+
+---
+
+## Pre-commit and CI
+
+- **Pre-commit** (`.pre-commit-config.yaml`) is the local quick gate: linting and formatting on all source files, plus a fast unit-only test run filtered by changed files. Install with `pre-commit install` once per clone.
+- **CI** is authoritative. The matrix runs test and lint jobs in parallel on every PR and push to `main`/`master`. A `tdd-evidence` job inspects the diff to enforce that any change under source directories is accompanied by a change under test directories.
+
+If pre-commit and CI disagree, **CI wins** — pre-commit may be skipped or run a narrower subset, but no PR merges without green CI.
+
+**The gate is the integration suite.** Unit tests mock the DB/serialization/HTTP boundaries and cannot catch ORM↔domain mismatches, schema regressions, or migration failures. Before claiming any non-trivial change done, run the full integration suite. Also run the full frontend suite if applicable.
+
+---
+
+## Task schema
+
+Every task in `docs/plans/*.md` must embed a `task-meta` HTML-comment block somewhere within its `### Task N` section. The block declares `id`, `touches`, `depends`, `verify`, and optionally `acceptance`. See [`templates/task-schema.md`](../../templates/task-schema.md).
+
+Validate any plan locally with:
+
+```bash
+python scripts/harness/validate_plan.py docs/plans/<file>.md
+```
+
+---
+
+## Harness tooling
+
+Five scripts extend the execution harness. All exit `0` on success, `1` on a real failure, `2` on a usage error. Plans live in `docs/plans/`.
+
+- **Parallel scheduler** — `python scripts/harness/plan_schedule.py <plan.md>`
+  prints the topological *layers* of a plan (tasks in the same layer have no dependency between them and may run in parallel) and fails if two same-layer tasks declare the same path in `touches`.
+- **Doc-freshness check** — `python scripts/harness/check_freshness.py <file.md> …`
+  flags expired `<!-- freshness: YYYY-MM-DD ttl: Nd -->` markers. Annotate any dated claim with a marker; the check fails once `date + ttl` is in the past. Runs as the advisory `doc-freshness` pre-commit hook.
+- **CHANGELOG auto-append** — `python scripts/harness/onda_done.py --plan <file>`
+  closes a work cycle: verifies all tasks are checked off, then appends an `[Unreleased]` entry to `CHANGELOG.md`. To bypass with audit trail, use `--force -m "<reason>"`; the entry is appended to `.harness/exceptions.log`.
+- **Plan validator** — `python scripts/harness/validate_plan.py <plan.md>`
+  validates task-meta blocks for schema correctness, unique ids, dependency cycles, and write-collision conflicts.
+- **Task runner** — `python scripts/harness/run_task.py <plan.md> <task-id>`
+  runs a task's `verify` command and ticks its checkbox in the plan file on success.
+
+Onda is "done" only when `scripts/harness/onda_done.py --plan <file>` exits 0.
+
+---
+
+## Package layout
+
+{{PACKAGE_LAYOUT}}
+
+---
+
+<!-- OPTIONAL:DOMAIN_RULES -->
+## Domain rules (mandatory)
+
+{{DOMAIN_RULES}}
+<!-- /OPTIONAL:DOMAIN_RULES -->
+
+<!-- OPTIONAL:UI_RULES -->
+## UI rules (mandatory)
+
+{{UI_RULES}}
+<!-- /OPTIONAL:UI_RULES -->

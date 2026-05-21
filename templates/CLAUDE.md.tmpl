@@ -1,0 +1,39 @@
+# {{PROJECT_NAME}} — Claude Code Quick Reference
+
+Canonical rules live in [AGENTS.md](AGENTS.md). Read it first for: branch discipline, TDD, coverage thresholds, harness tooling, task schema, the integration-suite gate. Do not duplicate that content here.
+
+## Stack
+
+{{STACK_SUMMARY}}
+
+## Common commands
+
+```bash
+{{COMMON_COMMANDS}}
+```
+
+## Planning trigger (mandatory)
+
+If the request implies a **new feature, multi-step work, schema change, new endpoint, new UI page, or any behavior change spanning more than one file**, AND there is no plan already referenced in `docs/plans/` or in this conversation, **propose planning BEFORE writing code**. Do not jump into implementation.
+
+Steps:
+
+1. State explicitly: "I'll plan before touching code."
+2. Invoke one of (in order of preference):
+   - `superpowers:writing-plans` — produces a written plan in `docs/plans/YYYY-MM-DD-<slug>.md`. Best for Onda-style work.
+   - `superpowers:brainstorming` — only when the user's own intent is unclear and needs exploration first.
+3. Only after the plan exists, proceed to execution.
+
+**Skip planning** (just do it) for: typo fixes, single-file mechanical edits, doc-only changes, bugfixes with a clear root cause already identified, follow-up steps inside an active plan the user is referencing, trivial config tweaks.
+
+When in doubt, ask one short question: "Does this look like plan-first or direct execution?" — but only if genuinely ambiguous; otherwise pick and announce.
+
+---
+
+## Onda-style delivery
+
+Features ship as numbered ondas with a written plan in `docs/plans/` before any code. Plans live ~30–60 tasks each. Never start an Onda without one.
+
+**Onda done = all of**: zero pending tasks in plan, integration suite green (0 failed), full test suite green, `migrate-smoke` green if migrations changed, pre-commit clean, manual smoke of the user-visible feature, branch merged to main.
+
+Use `scripts/harness/onda_done.py --plan <file>` to close an onda. Use `scripts/harness/validate_plan.py <file>` to validate a plan before starting it.
