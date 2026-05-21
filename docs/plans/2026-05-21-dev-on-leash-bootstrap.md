@@ -263,7 +263,7 @@ Constraints to state in the skill: never overwrite an existing `CLAUDE.md`/`AGEN
 
 Commit: `feat(skills): add bootstrap-dev-leash interview skill`.
 
-- [ ] **Task 7 complete**
+- [x] **Task 7 complete**
 
 <!-- task-meta
 id: T07
