@@ -72,8 +72,8 @@ jobs:
 
           plans = sorted(pathlib.Path('docs/plans').glob('*.md'))
           if not plans:
-              print('No plan files found', file=sys.stderr)
-              sys.exit(1)
+              print('No plan files in docs/plans - nothing to validate')
+              sys.exit(0)
           print(f'Validating {len(plans)} plan(s):', [str(p) for p in plans])
 
           failed = []

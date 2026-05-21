@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compute a parallel-execution schedule for a Bluenode plan.
+"""Compute a parallel-execution schedule for a plan.
 
 Reads every task-meta block in a plan, builds the dependency DAG, and
 partitions tasks into topological *layers*: layer 0 is every task with no
