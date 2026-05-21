@@ -1,0 +1,11 @@
+{
+  "name": "dev-on-leash",
+  "owner": { "name": "diogeneshfg" },
+  "plugins": [
+    {
+      "name": "dev-on-leash",
+      "source": "./",
+      "description": "Disciplined agentic-development harness, skills, and review agents."
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "name": "dev-on-leash",
+  "version": "0.1.0",
+  "description": "Disciplined agentic-development harness, skills, and review agents — keeps AI-driven development on guardrails.",
+  "author": { "name": "diogeneshfg" },
+  "homepage": "https://github.com/diogeneshfg/dev-on-leash",
+  "keywords": ["harness", "tdd", "planning", "agents", "workflow"]
+}
