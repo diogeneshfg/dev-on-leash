@@ -82,6 +82,11 @@ if (Test-Path -LiteralPath $DstHarness) {
         New-Item -ItemType Directory -Path $DstScriptsDir | Out-Null
     }
     Copy-Item -Path $SrcHarness -Destination $DstScriptsDir -Recurse
+    # Remove Python bytecode caches that may have been copied from the source.
+    Get-ChildItem -LiteralPath $DstHarness -Recurse -Filter '__pycache__' -Directory |
+        Remove-Item -Recurse -Force
+    Get-ChildItem -LiteralPath $DstHarness -Recurse -Filter '*.pyc' -File |
+        Remove-Item -Force
     Write-Host 'Copied:  scripts/harness/'
     $Copied.Add('scripts/harness/')
 }

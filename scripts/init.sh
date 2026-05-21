@@ -77,6 +77,9 @@ if [ -e "$DST_HARNESS" ]; then
 else
     mkdir -p "$TARGET/scripts"
     cp -r "$SRC_HARNESS" "$TARGET/scripts/"
+    # Remove Python bytecode caches that may have been copied from the source.
+    find "$DST_HARNESS" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
+    find "$DST_HARNESS" -name '*.pyc' -delete 2>/dev/null || true
     printf 'Copied:  scripts/harness/\n'
     COPIED="$COPIED scripts/harness/"
 fi
