@@ -305,7 +305,7 @@ Report: PASS or a specific list of findings with task ids. Do not fix anything â
 
 Commit: `feat(agents): add plan-reviewer agent`.
 
-- [ ] **Task 8 complete**
+- [x] **Task 8 complete**
 
 <!-- task-meta
 id: T08
@@ -323,7 +323,7 @@ acceptance: null
 
 Commit: `feat(agents): add tdd-evidence-checker agent`.
 
-- [ ] **Task 9 complete**
+- [x] **Task 9 complete**
 
 <!-- task-meta
 id: T09
@@ -341,7 +341,7 @@ acceptance: null
 
 Commit: `feat(agents): add isolation-reviewer agent`.
 
-- [ ] **Task 10 complete**
+- [x] **Task 10 complete**
 
 <!-- task-meta
 id: T10
@@ -359,7 +359,7 @@ acceptance: null
 
 Commit: `feat(agents): add verification-gate agent`.
 
-- [ ] **Task 11 complete**
+- [x] **Task 11 complete**
 
 <!-- task-meta
 id: T11
