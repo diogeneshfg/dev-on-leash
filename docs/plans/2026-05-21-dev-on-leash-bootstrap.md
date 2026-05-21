@@ -236,7 +236,7 @@ acceptance: null
 
 Commit: `feat(skills): add execute-plan-task skill`.
 
-- [ ] **Task 6 complete**
+- [x] **Task 6 complete**
 
 <!-- task-meta
 id: T06
