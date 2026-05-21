@@ -85,6 +85,17 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# 1b. Ensure scripts/__init__.py — the harness does `from scripts.harness…`,
+#     which needs scripts/ to resolve as a package root.
+# ---------------------------------------------------------------------------
+if [ ! -e "$TARGET/scripts/__init__.py" ]; then
+    mkdir -p "$TARGET/scripts"
+    : > "$TARGET/scripts/__init__.py"
+    printf 'Created: scripts/__init__.py\n'
+    CREATED="$CREATED scripts/__init__.py"
+fi
+
+# ---------------------------------------------------------------------------
 # 2. Ensure docs/ exists
 # ---------------------------------------------------------------------------
 if [ ! -d "$DST_DOCS" ]; then

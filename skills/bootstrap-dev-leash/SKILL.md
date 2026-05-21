@@ -116,4 +116,4 @@ Tell the user concisely:
 - Which files were created or updated (`CLAUDE.md`, `AGENTS.md`, `.claude/settings.json`), and which (if any) were written as `.dev-on-leash-proposed` pending manual merge.
 - Which optional blocks were kept or dropped (Domain rules, UI rules).
 - That the agnostic layer was copied: `scripts/harness/`, `docs/task-schema.md`, `docs/plan-template.md`, and an empty `docs/plans/` directory.
-- **Next step:** write a plan into `docs/plans/` (use `superpowers:writing-plans`), then execute it task-by-task with the `execute-plan-task` skill.
+- **Next step:** write a plan into `docs/plans/` (by hand from `docs/plan-template.md`, or with `superpowers:writing-plans` if those skills are installed), then execute it task-by-task with the `execute-plan-task` skill. Augment each task you want machine-verified with a `task-meta` block — see `docs/task-schema.md`.

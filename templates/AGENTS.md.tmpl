@@ -78,7 +78,7 @@ If pre-commit and CI disagree, **CI wins** — pre-commit may be skipped or run 
 
 ## Task schema
 
-Every task in `docs/plans/*.md` must embed a `task-meta` HTML-comment block somewhere within its `### Task N` section. The block declares `id`, `touches`, `depends`, `verify`, and optionally `acceptance`. See [`docs/task-schema.md`](docs/task-schema.md).
+A plan is an ordinary Markdown document with `## Task N` (or `### Task N`) headings. To make a task machine-verifiable, **augment** it with a `task-meta` HTML-comment block declaring `id`, `touches`, `depends`, `verify`, and optionally `acceptance`. `run_task.py` then runs that task's `verify` and ticks its checkbox; a task with no `task-meta` block is human-run and ignored by the harness. It is an augmentation of a normal plan, not a separate plan format. See [`docs/task-schema.md`](docs/task-schema.md).
 
 Validate any plan locally with:
 

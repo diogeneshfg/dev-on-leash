@@ -19,9 +19,7 @@ If the request implies a **new feature, multi-step work, schema change, new endp
 Steps:
 
 1. State explicitly: "I'll plan before touching code."
-2. Invoke one of (in order of preference):
-   - `superpowers:writing-plans` — produces a written plan in `docs/plans/YYYY-MM-DD-<slug>.md`. Best for cycle-style work.
-   - `superpowers:brainstorming` — only when the user's own intent is unclear and needs exploration first.
+2. Write a plan into `docs/plans/YYYY-MM-DD-<slug>.md`, following `docs/plan-template.md`. (If the `superpowers` skills are installed, `superpowers:writing-plans` generates one — and `superpowers:brainstorming` first, when the intent itself needs exploring — but they are optional; the harness does not depend on them.)
 3. Only after the plan exists, proceed to execution.
 
 **Skip planning** (just do it) for: typo fixes, single-file mechanical edits, doc-only changes, bugfixes with a clear root cause already identified, follow-up steps inside an active plan the user is referencing, trivial config tweaks.

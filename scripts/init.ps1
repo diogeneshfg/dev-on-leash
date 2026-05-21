@@ -92,6 +92,21 @@ if (Test-Path -LiteralPath $DstHarness) {
 }
 
 # ---------------------------------------------------------------------------
+# 1b. Ensure scripts/__init__.py -- the harness does `from scripts.harness...`,
+#     which needs scripts/ to resolve as a package root.
+# ---------------------------------------------------------------------------
+$DstScriptsInit = Join-Path $Target 'scripts\__init__.py'
+if (-not (Test-Path -LiteralPath $DstScriptsInit)) {
+    $DstScriptsDir = Join-Path $Target 'scripts'
+    if (-not (Test-Path -LiteralPath $DstScriptsDir -PathType Container)) {
+        New-Item -ItemType Directory -Path $DstScriptsDir | Out-Null
+    }
+    New-Item -ItemType File -Path $DstScriptsInit | Out-Null
+    Write-Host 'Created: scripts/__init__.py'
+    $Created.Add('scripts/__init__.py')
+}
+
+# ---------------------------------------------------------------------------
 # 2. Ensure docs/ exists
 # ---------------------------------------------------------------------------
 if (-not (Test-Path -LiteralPath $DstDocs -PathType Container)) {
