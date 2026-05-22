@@ -122,6 +122,49 @@ def test_ticks_correct_checkbox_in_plan_with_fenced_code_blocks(tmp_path):
     assert "- [ ] **Task 1 complete**" in text
 
 
+def test_id_substring_in_prose_does_not_misroute(tmp_path):
+    # Regression: task lookup must use the parsed task-meta id, not a substring
+    # scan. Prose mentioning another task's id must not misroute the tick.
+    plan = tmp_path / "plan.md"
+    plan.write_text(
+        textwrap.dedent('''
+        ### Task 1
+
+        This task is unrelated to id: T02 mentioned here in prose.
+
+        - [ ] **Task 1 complete**
+
+        <!-- task-meta
+        id: T01
+        touches: [a.py]
+        depends: []
+        verify: python -c "pass"
+        -->
+
+        ### Task 2
+
+        - [ ] **Task 2 complete**
+
+        <!-- task-meta
+        id: T02
+        touches: [b.py]
+        depends: []
+        verify: python -c "pass"
+        -->
+    '''),
+        encoding="utf-8",
+    )
+    r = subprocess.run(
+        [sys.executable, str(RUN_TASK), str(plan), "T01"],
+        capture_output=True,
+        text=True,
+    )
+    assert r.returncode == 0, r.stderr
+    text = plan.read_text(encoding="utf-8")
+    assert "- [x] **Task 1 complete**" in text
+    assert "- [ ] **Task 2 complete**" in text
+
+
 def test_does_not_tick_checkbox_inside_fenced_block(tmp_path):
     # A `- [ ]` inside a fenced code block within a task body must never be
     # flipped — only the real checkbox (which survives _strip_fenced_blocks).

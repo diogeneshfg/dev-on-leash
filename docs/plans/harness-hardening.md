@@ -452,7 +452,7 @@ def test_id_substring_in_prose_does_not_misroute(tmp_path):
 9. Run `python -m pytest tests/harness/test_schema.py tests/harness/test_run_task.py -q`
    — expect PASS (all existing run_task tests plus the new regression test).
 
-- [ ] **Task 2 complete**
+- [x] **Task 2 complete**
 
 <!-- task-meta
 id: T02
