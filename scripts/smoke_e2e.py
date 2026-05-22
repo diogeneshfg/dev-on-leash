@@ -182,7 +182,7 @@ def main(argv: list[str]) -> int:
         # break T02's work (remove mul) while its checkbox stays ticked
         (repo / "calc.py").write_text(CALC_ADD, encoding="utf-8")
         rc_broken, _ = _run([sys.executable, str(recheck), str(plan)])
-        step(7, "recheck_plan -> clean OK, hand-tick REJECTED",
+        step(7, "recheck_plan: clean OK, broken REJECTED",
              rc_clean == 0 and rc_broken == 1,
              "enforcement: ticked work re-verified")
 
