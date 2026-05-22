@@ -3,10 +3,11 @@
 A verify-gated task harness for AI-assisted development, packaged as a
 portable **Claude Code plugin**.
 
-`dev-on-leash` turns a Markdown plan into a machine-checked workflow: each
-task declares a `verify` command, a task's checkbox is ticked only when that
-command passes, and every ticked task can be independently re-verified so a
-hand-flipped checkbox cannot survive CI or a pre-commit hook. It ships a
+`dev-on-leash` turns a Markdown plan into a machine-checked workflow: a
+harness task declares a `verify` command, its checkbox is ticked only when
+that command passes, and every ticked harness task can be independently
+re-verified so a hand-flipped checkbox cannot survive CI or a pre-commit hook.
+It ships a
 parallel-execution scheduler, a doc-freshness check, an auto-appended
 changelog, custom review agents, and a bootstrap skill that scaffolds the
 whole setup into any project.
@@ -56,11 +57,13 @@ run it, and no dependency on any other plugin.
 
 Be precise about what the harness enforces and what it only assists:
 
-- **Enforced.** A task's checkbox is ticked only by `run_task.py` after its
-  `verify` command exits 0. `recheck_plan.py` re-runs the `verify` of every
-  ticked task — run it in CI (see [templates/ci-snippet.md](templates/ci-snippet.md))
-  and/or as the opt-in pre-commit hook, and a checkbox flipped by hand without
-  the work done is rejected.
+- **Enforced.** A harness task's checkbox is ticked only by `run_task.py`
+  after its `verify` command exits 0. `recheck_plan.py` re-runs the `verify`
+  of every ticked harness task — run it in CI (see
+  [templates/ci-snippet.md](templates/ci-snippet.md)) and/or as the opt-in
+  pre-commit hook, and a checkbox flipped by hand without the work done is
+  rejected. A task heading with no `task-meta` block is human-run and not
+  machine-checked.
 - **By convention only.** `touches` is self-reported: the harness does not yet
   check that a task modified *only* its declared files, so the parallel-safety
   of `plan_schedule.py` depends on `touches` being accurate. Verifying it
