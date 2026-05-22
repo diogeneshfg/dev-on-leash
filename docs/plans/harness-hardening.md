@@ -106,7 +106,7 @@ def test_pyproject_and_plugin_versions_match():
 
 4. Run `python -m pytest tests/test_meta.py -q` — expect PASS.
 
-- [ ] **Task 1 complete**
+- [x] **Task 1 complete**
 
 <!-- task-meta
 id: T01
