@@ -858,7 +858,7 @@ broken while a checkbox stays ticked, and `recheck_plan` must reject it.
 4. Run `python scripts/smoke_e2e.py` — expect `SMOKE PASS` with 7 steps,
    step 7 reporting `OK`.
 
-- [ ] **Task 5 complete**
+- [x] **Task 5 complete**
 
 <!-- task-meta
 id: T05
