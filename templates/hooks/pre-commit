@@ -1,0 +1,20 @@
+#!/bin/sh
+# dev-on-leash pre-commit hook — re-verify every ticked task in staged plans.
+#
+# Opt-in: installed by the bootstrap-dev-leash skill (or manually via
+# `git config core.hooksPath .harness/hooks`). It blocks a commit when a plan
+# under docs/plans/ has a task checkbox ticked whose `verify` command does not
+# actually pass — i.e. a checkbox flipped by hand instead of by run_task.py.
+#
+# Emergency bypass: git commit --no-verify
+set -e
+
+staged_plans=$(git diff --cached --name-only --diff-filter=ACM \
+    | grep '^docs/plans/.*\.md$' || true)
+[ -z "$staged_plans" ] && exit 0
+
+rc=0
+for plan in $staged_plans; do
+    python scripts/harness/recheck_plan.py "$plan" || rc=1
+done
+exit $rc

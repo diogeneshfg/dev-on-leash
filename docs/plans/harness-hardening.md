@@ -798,7 +798,7 @@ if (Test-Path -LiteralPath $DstHook) {
 
 6. Run `python -m pytest tests/test_init.py -q` — expect PASS.
 
-- [ ] **Task 4 complete**
+- [x] **Task 4 complete**
 
 <!-- task-meta
 id: T04
