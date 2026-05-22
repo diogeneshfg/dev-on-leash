@@ -1140,7 +1140,7 @@ harness-hardening effort.
 
 7. Run `python -m pytest tests/test_docs.py -q` — expect PASS.
 
-- [ ] **Task 7 complete**
+- [x] **Task 7 complete**
 
 <!-- task-meta
 id: T07

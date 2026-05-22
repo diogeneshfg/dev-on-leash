@@ -1,7 +1,7 @@
 {
   "name": "dev-on-leash",
   "version": "0.2.0",
-  "description": "Disciplined agentic-development harness, skills, and review agents — keeps AI-driven development on guardrails.",
+  "description": "A verify-gated task harness for AI-assisted development: Markdown plans where every ticked task is independently re-verifiable, with a parallel scheduler, review agents, and a bootstrap skill.",
   "author": { "name": "diogeneshfg" },
   "homepage": "https://github.com/diogeneshfg/dev-on-leash",
   "keywords": ["harness", "tdd", "planning", "agents", "workflow"]

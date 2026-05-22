@@ -1,12 +1,15 @@
 # dev-on-leash
 
-A disciplined agentic-development harness, packaged as a portable **Claude Code plugin**.
+A verify-gated task harness for AI-assisted development, packaged as a
+portable **Claude Code plugin**.
 
-`dev-on-leash` keeps AI-driven development on guardrails: a verify-gated task
-schema, a parallel-execution scheduler, a doc-freshness check, an auto-appended
-changelog, custom review agents, and a bootstrap skill that scaffolds the whole
-discipline into any project. It was extracted from a proven internal harness
-that runs in CI and git hooks.
+`dev-on-leash` turns a Markdown plan into a machine-checked workflow: each
+task declares a `verify` command, a task's checkbox is ticked only when that
+command passes, and every ticked task can be independently re-verified so a
+hand-flipped checkbox cannot survive CI or a pre-commit hook. It ships a
+parallel-execution scheduler, a doc-freshness check, an auto-appended
+changelog, custom review agents, and a bootstrap skill that scaffolds the
+whole setup into any project.
 
 ## What's in the box
 
@@ -48,6 +51,22 @@ drives the loop:
 
 The harness is plain Python operating on Markdown — no Claude Code required to
 run it, and no dependency on any other plugin.
+
+## Trust model
+
+Be precise about what the harness enforces and what it only assists:
+
+- **Enforced.** A task's checkbox is ticked only by `run_task.py` after its
+  `verify` command exits 0. `recheck_plan.py` re-runs the `verify` of every
+  ticked task — run it in CI (see `templates/ci-snippet.md`) and/or as the
+  opt-in pre-commit hook, and a checkbox flipped by hand without the work
+  done is rejected.
+- **By convention only.** `touches` is self-reported: the harness does not yet
+  check that a task modified *only* its declared files, so the parallel-safety
+  of `plan_schedule.py` depends on `touches` being accurate. Verifying it
+  without false positives needs its own design — tracked as a follow-up.
+- **Escape hatch.** `cycle_done.py --force -m <reason>` closes a cycle past
+  failing gates and appends an audit line to `.harness/exceptions.log`.
 
 ## Validate the harness
 
