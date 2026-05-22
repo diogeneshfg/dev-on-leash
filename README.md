@@ -58,15 +58,17 @@ Be precise about what the harness enforces and what it only assists:
 
 - **Enforced.** A task's checkbox is ticked only by `run_task.py` after its
   `verify` command exits 0. `recheck_plan.py` re-runs the `verify` of every
-  ticked task — run it in CI (see `templates/ci-snippet.md`) and/or as the
-  opt-in pre-commit hook, and a checkbox flipped by hand without the work
-  done is rejected.
+  ticked task — run it in CI (see [templates/ci-snippet.md](templates/ci-snippet.md))
+  and/or as the opt-in pre-commit hook, and a checkbox flipped by hand without
+  the work done is rejected.
 - **By convention only.** `touches` is self-reported: the harness does not yet
   check that a task modified *only* its declared files, so the parallel-safety
   of `plan_schedule.py` depends on `touches` being accurate. Verifying it
   without false positives needs its own design — tracked as a follow-up.
 - **Escape hatch.** `cycle_done.py --force -m <reason>` closes a cycle past
-  failing gates and appends an audit line to `.harness/exceptions.log`.
+  failing gates and appends an audit line to `.harness/exceptions.log`. It
+  bypasses `cycle_done`'s own gate check only — it does not disable
+  `recheck_plan` running in CI or the pre-commit hook.
 
 ## Validate the harness
 

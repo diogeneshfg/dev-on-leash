@@ -11,4 +11,4 @@ parallel-safety guarantee depends on `touches` being accurate.
 A check would compare `git diff --name-only` after a task against its declared
 `touches`. Doing that without false positives from unrelated concurrent work
 in the diff needs its own design. Deferred from the 2026-05-22
-harness-hardening effort.
+harness-hardening effort (see `docs/plans/harness-hardening.md`).

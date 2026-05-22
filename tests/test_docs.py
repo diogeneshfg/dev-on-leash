@@ -24,9 +24,9 @@ def test_plugin_description_is_honest():
         (ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8")
     )["description"]
     assert "re-verifiable" in desc
-    assert "guardrails" not in desc.lower()
+    assert "guardrails" not in desc.lower(), f"description still contains 'guardrails': {desc}"
 
 
 def test_followups_records_touches_integrity():
     text = (ROOT / "docs" / "follow-ups.md").read_text(encoding="utf-8")
-    assert "touches" in text
+    assert "touches-integrity" in text
