@@ -2,30 +2,26 @@
 
 All notable changes to dev-on-leash are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/). Entries under `[Unreleased]`
-are appended automatically by `scripts/harness/cycle_done.py` when a Cycle
-closes green; edit them by hand only to add detail.
+are appended automatically by `scripts/harness/cycle_done.py` when a cycle
+closes green; edit them by hand to add detail.
 
 ## [Unreleased]
-### 2026-05-21 — 2026-05-21-dev-on-leash-bootstrap
-- Cycle closed: dev-on-leash Bootstrap — Implementation Plan
 
+## [0.2.0] — 2026-05-21
 
-Bootstrap of the 0.1.0 release: portable Claude Code plugin packaging the
-disciplined agentic-development harness (Cycle lifecycle, skills, hooks,
-CHANGELOG automation).
+Initial public release.
 
-### Task 15 — install smoke test
-
-- **Local bootstrap smoke test: PASS.** Against a throwaway `git init` repo,
-  `scripts/init.*` copied the agnostic layer cleanly (`scripts/harness/` with
-  no `__pycache__`, `docs/task-schema.md`, `docs/plan-template.md`, empty
-  `docs/plans/`; no `CLAUDE.md`/`AGENTS.md`). The template render produced
-  placeholder-free `CLAUDE.md`/`AGENTS.md`/`.claude/settings.json` with one
-  optional block kept and one dropped, valid JSON settings, and the vendored
-  harness ran inside the target (`validate_plan.py` → exit 0). dev-on-leash's
-  own harness suite: 32 passed.
-- **GitHub install step: pending user action.** The `/plugin marketplace add
-  diogeneshfg/dev-on-leash` + `/plugin install dev-on-leash@dev-on-leash` flow
-  and the in-session check that the skills/agents appear must be run
-  interactively in a Claude Code session after this branch is pushed; it
-  cannot be performed by the plan executor.
+### Added
+- Portable Claude Code plugin packaging the agentic-development harness:
+  `validate_plan`, `run_task`, `cycle_done`, `plan_schedule`, `check_freshness`,
+  and baseline/regression tooling. Plain Python — no Claude Code required to run.
+- Skills — `bootstrap-dev-leash` (interview + scaffold a project) and
+  `execute-plan-task`.
+- Review agents — `plan-reviewer`, `tdd-evidence-checker`, `isolation-reviewer`,
+  `verification-gate`.
+- `task-meta` augmentation model: annotate any plan's tasks to make them
+  machine-verified; `validate_plan` reports task headings that lack `task-meta`.
+- Project-configurable cycle gates via `.harness/gates`.
+- `scripts/init.{sh,ps1}` install the agnostic layer into any repo;
+  `scripts/smoke_e2e.py` drives the whole harness loop end to end; the self-CI
+  workflow runs both the unit suite and the smoke test on every push.

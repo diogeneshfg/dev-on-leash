@@ -35,7 +35,7 @@ Any change under source or test directories, build configuration, migrations, or
 > 2. **Green** — write the minimum production code to make the test pass.
 > 3. **Refactor** — clean up while keeping the bar green.
 >
-> PRs touching source files without corresponding test changes will be flagged by the `tdd-evidence` CI job (advisory in Phase 1, blocking from Phase 2).
+> A change under source files without a matching test change is a TDD violation — audit any diff with the `tdd-evidence-checker` review agent.
 
 How to run tests:
 
@@ -68,7 +68,7 @@ Anything that touches behavior — a route, a hook, a domain method, a schema, a
 ## Pre-commit and CI
 
 - **Pre-commit** (`.pre-commit-config.yaml`) is the local quick gate: linting and formatting on all source files, plus a fast unit-only test run filtered by changed files. Install with `pre-commit install` once per clone.
-- **CI** is authoritative. The matrix runs test and lint jobs in parallel on every PR and push to `main`/`master`. A `tdd-evidence` job inspects the diff to enforce that any change under source directories is accompanied by a change under test directories.
+- **CI** is authoritative. It runs the test and lint jobs on every PR and push to `main`/`master`; no PR merges without green CI.
 
 If pre-commit and CI disagree, **CI wins** — pre-commit may be skipped or run a narrower subset, but no PR merges without green CI.
 
