@@ -664,7 +664,7 @@ if __name__ == "__main__":
 
 4. Run `python -m pytest tests/harness/test_recheck_plan.py -q` — expect PASS.
 
-- [ ] **Task 3 complete**
+- [x] **Task 3 complete**
 
 <!-- task-meta
 id: T03
