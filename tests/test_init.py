@@ -1,7 +1,6 @@
 """init.{sh,ps1} copy the project-agnostic layer, including the pre-commit hook."""
 import os
 import subprocess
-import sys
 from pathlib import Path
 
 import pytest
