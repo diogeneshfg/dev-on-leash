@@ -14,6 +14,8 @@ def test_ci_yaml_is_valid_and_rechecks_plans():
     text = ci.read_text(encoding="utf-8")
     doc = yaml.safe_load(text)
     assert doc, "ci.yml must be valid, non-empty YAML"
+    step_names = [s.get("name", "") for s in doc["jobs"]["ci"]["steps"]]
+    assert "Re-verify ticked tasks in plans" in step_names
     assert "recheck_plan.py" in text
 
 
