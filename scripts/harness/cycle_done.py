@@ -3,9 +3,10 @@
 
 Checks:
   - No pending `- [ ]` checkboxes in the plan file.
-  - check_regression exits 0 (skippable via --skip-suite for unit-test purposes).
-  - pre-commit clean.
-  - web suite green (cd packages/web && npm run test) — skippable in --skip-suite.
+  - Every command listed in `.harness/gates` exits 0
+    (skippable via --skip-suite for harness self-tests).
+
+On success, appends an `[Unreleased]` entry to CHANGELOG.md.
 
 Exit codes:
   0 - all gates pass (or --force used + reason logged)
@@ -23,11 +24,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_EXCEPTIONS = REPO_ROOT / ".harness" / "exceptions.log"
-
-if __name__ == "__main__" and __package__ is None:
-    sys.path.insert(0, str(REPO_ROOT))
-
-from scripts.harness._common import bash_shell_cmd  # noqa: E402
+DEFAULT_GATES = REPO_ROOT / ".harness" / "gates"
 
 
 def check_no_pending(plan_path: Path) -> bool:
@@ -39,38 +36,33 @@ def check_no_pending(plan_path: Path) -> bool:
     return True
 
 
-def check_regression() -> bool:
-    # bash_shell_cmd applies the POSIX-path + shlex.quote pattern that
-    # snapshot_baseline.py and check_regression.py also use. Without it, a
-    # Windows-native path passed list-form to bash fails on MSYS2 / Git Bash.
-    shell_cmd = bash_shell_cmd(REPO_ROOT / "scripts" / "harness" / "check_regression.sh", [])
-    rc = subprocess.call(shell_cmd, shell=True, cwd=REPO_ROOT)
-    if rc != 0:
-        print("FAIL: integration regression", file=sys.stderr)
-        return False
-    print("OK: no integration regression", file=sys.stderr)
-    return True
+def load_gates(gates_path: Path) -> list[str]:
+    """Read `.harness/gates`: one shell command per line.
+
+    Blank lines and lines starting with `#` are ignored. A missing file
+    yields no gates — the cycle then closes on checkbox state alone.
+    """
+    if not gates_path.exists():
+        return []
+    gates: list[str] = []
+    for line in gates_path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if stripped and not stripped.startswith("#"):
+            gates.append(stripped)
+    return gates
 
 
-def check_web_suite() -> bool:
-    rc = subprocess.call(
-        ["npm", "run", "test", "--", "--run"],
-        cwd=REPO_ROOT / "packages" / "web",
-    )
-    if rc != 0:
-        print("FAIL: web suite", file=sys.stderr)
-        return False
-    print("OK: web suite green", file=sys.stderr)
-    return True
-
-
-def check_pre_commit() -> bool:
-    rc = subprocess.call(["pre-commit", "run", "--all-files"], cwd=REPO_ROOT)
-    if rc != 0:
-        print("FAIL: pre-commit", file=sys.stderr)
-        return False
-    print("OK: pre-commit clean", file=sys.stderr)
-    return True
+def run_gates(gates: list[str]) -> bool:
+    """Run each gate command from the repo root. All must exit 0."""
+    ok = True
+    for cmd in gates:
+        rc = subprocess.call(cmd, shell=True, cwd=REPO_ROOT)
+        if rc != 0:
+            print(f"FAIL: gate exited {rc}: {cmd}", file=sys.stderr)
+            ok = False
+        else:
+            print(f"OK: gate passed: {cmd}", file=sys.stderr)
+    return ok
 
 
 def _plan_title(plan_path: Path) -> str:
@@ -106,16 +98,20 @@ def main(argv: list[str]) -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--plan", type=Path, required=True)
     p.add_argument("--skip-suite", action="store_true",
-                   help="skip integration + web + pre-commit (for harness self-tests only)")
+                   help="skip the .harness/gates commands (for harness self-tests only)")
     p.add_argument("--force", action="store_true", help="bypass failing gates")
     p.add_argument("-m", "--message", help="audit reason (required when --force)")
     args = p.parse_args(argv[1:])
 
     results = [check_no_pending(args.plan)]
     if not args.skip_suite:
-        results.append(check_regression())
-        results.append(check_web_suite())
-        results.append(check_pre_commit())
+        gates_path = Path(os.environ.get("HARNESS_GATES_PATH", DEFAULT_GATES))
+        gates = load_gates(gates_path)
+        if gates:
+            results.append(run_gates(gates))
+        else:
+            print(f"note: no gate commands ({gates_path} absent or empty) — "
+                  "closing on checkbox state only", file=sys.stderr)
 
     if all(results):
         changelog_path = Path(

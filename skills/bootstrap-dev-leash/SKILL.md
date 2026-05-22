@@ -100,6 +100,23 @@ For each of `CLAUDE.md`, `AGENTS.md`, `.claude/settings.json`:
 
 Create the `.claude/` directory if it does not exist.
 
+## Step 3b — Write the cycle gates
+
+`scripts/harness/cycle_done.py` closes a cycle only when every command in `.harness/gates` exits 0. Build that file from the interview's verification answers (Step 2, items 4–7):
+
+- Create `.harness/` in the target project if it does not exist.
+- Write `.harness/gates` with one shell command per line — the project's test, lint, typecheck, and build commands. Skip any category the project does not have. Lines starting with `#` are comments.
+
+Example:
+
+```
+# Commands run by cycle_done.py to close a cycle. All must exit 0.
+python -m pytest
+ruff check .
+```
+
+If the project has no verification commands at all, still write `.harness/gates` with just the comment header — `cycle_done` then closes on checkbox state alone, and the user has an obvious place to add gates later.
+
 ## Step 4 — Copy the project-agnostic layer
 
 Invoke the plugin's init script to drop the agnostic layer into the target project. The script **requires** the target repo path as its first argument — omitting it causes the script to exit 1 with an error. Since the skill runs from the target project root, pass `.` as the target path. Use the script matching the OS:
@@ -116,4 +133,5 @@ Tell the user concisely:
 - Which files were created or updated (`CLAUDE.md`, `AGENTS.md`, `.claude/settings.json`), and which (if any) were written as `.dev-on-leash-proposed` pending manual merge.
 - Which optional blocks were kept or dropped (Domain rules, UI rules).
 - That the agnostic layer was copied: `scripts/harness/`, `docs/task-schema.md`, `docs/plan-template.md`, and an empty `docs/plans/` directory.
+- That `.harness/gates` was written from the verification commands — editing it tunes what `cycle_done` checks before closing a cycle.
 - **Next step:** write a plan into `docs/plans/` (by hand from `docs/plan-template.md`, or with `superpowers:writing-plans` if those skills are installed), then execute it task-by-task with the `execute-plan-task` skill. Augment each task you want machine-verified with a `task-meta` block — see `docs/task-schema.md`.

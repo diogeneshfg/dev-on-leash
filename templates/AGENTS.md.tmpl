@@ -96,8 +96,8 @@ Five scripts extend the execution harness. All exit `0` on success, `1` on a rea
   prints the topological *layers* of a plan (tasks in the same layer have no dependency between them and may run in parallel) and fails if two same-layer tasks declare the same path in `touches`.
 - **Doc-freshness check** — `python scripts/harness/check_freshness.py <file.md> …`
   flags expired `<!-- freshness: YYYY-MM-DD ttl: Nd -->` markers. Annotate any dated claim with a marker; the check fails once `date + ttl` is in the past. Runs as the advisory `doc-freshness` pre-commit hook.
-- **CHANGELOG auto-append** — `python scripts/harness/cycle_done.py --plan <file>`
-  closes a work cycle: verifies all tasks are checked off, then appends an `[Unreleased]` entry to `CHANGELOG.md`. To bypass with audit trail, use `--force -m "<reason>"`; the entry is appended to `.harness/exceptions.log`.
+- **Cycle closer** — `python scripts/harness/cycle_done.py --plan <file>`
+  closes a work cycle: verifies all tasks are checked off **and** every command in `.harness/gates` exits 0, then appends an `[Unreleased]` entry to `CHANGELOG.md`. `.harness/gates` holds one shell command per line (the project's test / lint / typecheck / build commands). To bypass with an audit trail, use `--force -m "<reason>"` (logged to `.harness/exceptions.log`).
 - **Plan validator** — `python scripts/harness/validate_plan.py <plan.md>`
   validates task-meta blocks for schema correctness, unique ids, dependency cycles, and write-collision conflicts.
 - **Task runner** — `python scripts/harness/run_task.py <plan.md> <task-id>`

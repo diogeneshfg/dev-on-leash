@@ -1,3 +1,4 @@
+import os
 import subprocess
 import sys
 import textwrap
@@ -113,3 +114,52 @@ def test_force_logs_exception(tmp_path):
     )
     assert r.returncode == 0
     assert "deferred per discussion" in audit.read_text()
+
+
+def test_gates_pass_closes_cycle(tmp_path):
+    plan = write_plan(tmp_path, all_done=True)
+    gates = tmp_path / "gates"
+    gates.write_text('python -c "import sys; sys.exit(0)"\n', encoding="utf-8")
+    env = {
+        **os.environ,
+        "HARNESS_GATES_PATH": str(gates),
+        "HARNESS_CHANGELOG_PATH": str(tmp_path / "CHANGELOG.md"),
+    }
+    r = subprocess.run(
+        [sys.executable, str(CYCLE_DONE), "--plan", str(plan)],
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert r.returncode == 0, r.stderr
+
+
+def test_failing_gate_blocks_cycle(tmp_path):
+    plan = write_plan(tmp_path, all_done=True)
+    gates = tmp_path / "gates"
+    gates.write_text('python -c "import sys; sys.exit(1)"\n', encoding="utf-8")
+    env = {**os.environ, "HARNESS_GATES_PATH": str(gates)}
+    r = subprocess.run(
+        [sys.executable, str(CYCLE_DONE), "--plan", str(plan)],
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert r.returncode == 1
+    assert "gate" in r.stderr.lower()
+
+
+def test_missing_gates_file_closes_on_checkboxes(tmp_path):
+    plan = write_plan(tmp_path, all_done=True)
+    env = {
+        **os.environ,
+        "HARNESS_GATES_PATH": str(tmp_path / "no-such-gates"),
+        "HARNESS_CHANGELOG_PATH": str(tmp_path / "CHANGELOG.md"),
+    }
+    r = subprocess.run(
+        [sys.executable, str(CYCLE_DONE), "--plan", str(plan)],
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert r.returncode == 0, r.stderr

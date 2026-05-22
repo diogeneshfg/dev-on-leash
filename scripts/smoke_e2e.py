@@ -162,13 +162,16 @@ def main(argv: list[str]) -> int:
              rc1 == 0 and t01_ticked and rc2 == 0 and t02_ticked,
              "green, checkboxes ticked")
 
-        # 6 — cycle_done: no pending tasks, CHANGELOG appended
+        # 6 — cycle_done: no pending tasks + .harness/gates all pass, CHANGELOG appended
+        (repo / ".harness").mkdir(exist_ok=True)
+        (repo / ".harness" / "gates").write_text(
+            "# smoke gate\npython -m pytest tests/test_calc.py -q\n", encoding="utf-8")
         rc, _ = _run([sys.executable, str(harness / "cycle_done.py"),
-                      "--plan", str(plan), "--skip-suite"])
+                      "--plan", str(plan)])
         changelog = repo / "CHANGELOG.md"
         ok = (rc == 0 and changelog.exists()
               and "smoke" in changelog.read_text(encoding="utf-8").lower())
-        step(6, "cycle_done --skip-suite -> CHANGELOG", ok)
+        step(6, "cycle_done (.harness/gates) -> CHANGELOG", ok)
 
     finally:
         elapsed = time.time() - t0
