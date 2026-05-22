@@ -98,3 +98,34 @@ jobs:
               sys.exit(1)
           print('All plans valid')
           "
+
+      - name: Re-verify ticked tasks in plans
+        run: |
+          python -c "
+          import subprocess, sys, pathlib
+
+          plans = sorted(pathlib.Path('docs/plans').glob('*.md'))
+          if not plans:
+              print('No plan files in docs/plans - nothing to re-verify')
+              sys.exit(0)
+          print(f'Re-verifying {len(plans)} plan(s):', [str(p) for p in plans])
+
+          failed = []
+          for p in plans:
+              r = subprocess.run(
+                  [sys.executable, 'scripts/harness/recheck_plan.py', str(p)],
+                  capture_output=True, text=True
+              )
+              print(f'{p}: exit={r.returncode}')
+              if r.stdout:
+                  print(r.stdout, end='')
+              if r.stderr:
+                  print(r.stderr, end='', file=sys.stderr)
+              if r.returncode != 0:
+                  failed.append(str(p))
+
+          if failed:
+              print(f'Re-verify failed for: {failed}', file=sys.stderr)
+              sys.exit(1)
+          print('All ticked tasks re-verified')
+          "

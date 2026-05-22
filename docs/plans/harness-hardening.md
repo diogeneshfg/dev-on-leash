@@ -1010,7 +1010,7 @@ For CI enforcement, point the user at `${CLAUDE_PLUGIN_ROOT}/templates/ci-snippe
 
 7. Run `python -m pytest tests/test_ci_wiring.py -q` — expect PASS.
 
-- [ ] **Task 6 complete**
+- [x] **Task 6 complete**
 
 <!-- task-meta
 id: T06
