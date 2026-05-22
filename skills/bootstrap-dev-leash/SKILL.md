@@ -126,6 +126,24 @@ Invoke the plugin's init script to drop the agnostic layer into the target proje
 
 This copies `scripts/harness/`, `docs/task-schema.md`, `docs/plan-template.md`, and an empty `docs/plans/` directory into the target project. Run it from the target project root. If the init script is not yet present in the installed plugin version, report that the agnostic layer could not be copied and tell the user to update the plugin — do not hand-copy files.
 
+## Step 4b — Offer the pre-commit hook (opt-in)
+
+The init script copies an opt-in pre-commit hook to
+`.harness/hooks/pre-commit`. It runs `scripts/harness/recheck_plan.py` on any
+staged plan file and blocks the commit if a ticked task fails to re-verify —
+the local half of the enforcement model.
+
+Ask the user (one `AskUserQuestion`, yes/no) whether to activate it now:
+
+- **Yes:** run `git config core.hooksPath .harness/hooks` in the target repo.
+  Tell the user the bypass is `git commit --no-verify`, and that
+  `core.hooksPath` redirects *all* git hooks to `.harness/hooks/`.
+- **No:** leave the hook file in place, unactivated. Tell the user they can
+  activate it later with the same `git config` command.
+
+For CI enforcement, point the user at `${CLAUDE_PLUGIN_ROOT}/templates/ci-snippet.md`
+— a copy-pasteable step that re-verifies ticked tasks on every push.
+
 ## Step 5 — Report
 
 Tell the user concisely:
@@ -134,4 +152,6 @@ Tell the user concisely:
 - Which optional blocks were kept or dropped (Domain rules, UI rules).
 - That the agnostic layer was copied: `scripts/harness/`, `docs/task-schema.md`, `docs/plan-template.md`, and an empty `docs/plans/` directory.
 - That `.harness/gates` was written from the verification commands — editing it tunes what `cycle_done` checks before closing a cycle.
+- Whether the pre-commit hook was activated (`git config core.hooksPath`), and
+  that the CI snippet in `templates/ci-snippet.md` enforces the same check on push.
 - **Next step:** write a plan into `docs/plans/` (by hand from `docs/plan-template.md`, or with `superpowers:writing-plans` if those skills are installed), then execute it task-by-task with the `execute-plan-task` skill. Augment each task you want machine-verified with a `task-meta` block — see `docs/task-schema.md`.

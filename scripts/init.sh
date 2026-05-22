@@ -139,6 +139,23 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# 6. Copy the opt-in pre-commit hook into .harness/hooks/ (NOT activated)
+# ---------------------------------------------------------------------------
+SRC_HOOK="$PLUGIN_ROOT/templates/hooks/pre-commit"
+DST_HOOKS_DIR="$TARGET/.harness/hooks"
+DST_HOOK="$DST_HOOKS_DIR/pre-commit"
+if [ -e "$DST_HOOK" ]; then
+    printf 'Skipped: .harness/hooks/pre-commit (already exists)\n'
+    SKIPPED="$SKIPPED .harness/hooks/pre-commit"
+else
+    mkdir -p "$DST_HOOKS_DIR"
+    cp "$SRC_HOOK" "$DST_HOOK"
+    chmod +x "$DST_HOOK" 2>/dev/null || true
+    printf 'Copied:  .harness/hooks/pre-commit\n'
+    COPIED="$COPIED .harness/hooks/pre-commit"
+fi
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 printf '%s\n' '' '--- dev-on-leash init summary ---'

@@ -8,6 +8,8 @@ init.{sh,ps1}, and drives a tiny 2-task plan through the whole loop:
          -> run_task (red: no impl, verify fails, checkbox stays unticked)
          -> run_task (green: impl present, verify passes, checkbox ticked)
          -> cycle_done (no pending tasks, CHANGELOG appended)
+         -> recheck_plan (every ticked task re-verifies; a hand-ticked
+            but-undone task is rejected)
 
 Every step is asserted. Prints a step report and exits 0 on SMOKE PASS,
 1 on the first failure. The temp repo is removed on success; pass --keep
@@ -110,7 +112,7 @@ def main(argv: list[str]) -> int:
     def step(n: int, label: str, ok: bool, detail: str = "") -> None:
         nonlocal failed
         mark = "OK" if ok else "FAIL"
-        line = f"[{n}/6] {label:<41} {mark}"
+        line = f"[{n}/7] {label:<41} {mark}"
         if detail:
             line += f"  {detail}"
         print(line)
@@ -172,6 +174,17 @@ def main(argv: list[str]) -> int:
         ok = (rc == 0 and changelog.exists()
               and "smoke" in changelog.read_text(encoding="utf-8").lower())
         step(6, "cycle_done (.harness/gates) -> CHANGELOG", ok)
+
+        # 7 — recheck_plan: a genuine plan re-verifies clean; a checkbox left
+        #     ticked after its work is undone must be REJECTED.
+        recheck = harness / "recheck_plan.py"
+        rc_clean, _ = _run([sys.executable, str(recheck), str(plan)])
+        # break T02's work (remove mul) while its checkbox stays ticked
+        (repo / "calc.py").write_text(CALC_ADD, encoding="utf-8")
+        rc_broken, _ = _run([sys.executable, str(recheck), str(plan)])
+        step(7, "recheck_plan: clean OK, broken REJECTED",
+             rc_clean == 0 and rc_broken == 1,
+             "enforcement: ticked work re-verified")
 
     finally:
         elapsed = time.time() - t0

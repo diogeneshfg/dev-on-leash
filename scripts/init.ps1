@@ -150,6 +150,24 @@ if (Test-Path -LiteralPath $DstPlansDir -PathType Container) {
 }
 
 # ---------------------------------------------------------------------------
+# 6. Copy the opt-in pre-commit hook into .harness/hooks/ (NOT activated)
+# ---------------------------------------------------------------------------
+$SrcHook     = Join-Path $PluginRoot 'templates\hooks\pre-commit'
+$DstHooksDir = Join-Path $Target '.harness\hooks'
+$DstHook     = Join-Path $DstHooksDir 'pre-commit'
+if (Test-Path -LiteralPath $DstHook) {
+    Write-Host 'Skipped: .harness/hooks/pre-commit (already exists)'
+    $Skipped.Add('.harness/hooks/pre-commit')
+} else {
+    if (-not (Test-Path -LiteralPath $DstHooksDir -PathType Container)) {
+        New-Item -ItemType Directory -Path $DstHooksDir -Force | Out-Null
+    }
+    Copy-Item -Path $SrcHook -Destination $DstHook
+    Write-Host 'Copied:  .harness/hooks/pre-commit'
+    $Copied.Add('.harness/hooks/pre-commit')
+}
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 Write-Host ''

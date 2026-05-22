@@ -40,7 +40,9 @@ def test_parses_single_task(tmp_path):
     )
 
 
-def test_rejects_task_without_meta(tmp_path):
+def test_task_heading_without_meta_is_human_run(tmp_path):
+    # A task heading with no task-meta block is a human-run task: the harness
+    # returns no TaskMeta for it rather than erroring. See templates/task-schema.md.
     plan = write_plan(
         tmp_path,
         """
@@ -49,8 +51,69 @@ def test_rejects_task_without_meta(tmp_path):
         (no task-meta block here)
     """,
     )
-    with pytest.raises(SchemaError, match="missing task-meta"):
+    assert parse_plan(plan) == []
+
+
+def test_rejects_two_meta_blocks_in_one_region(tmp_path):
+    plan = write_plan(
+        tmp_path,
+        """
+        ### Task 1
+
+        <!-- task-meta
+        id: T01
+        touches: [a]
+        depends: []
+        verify: "true"
+        -->
+
+        <!-- task-meta
+        id: T02
+        touches: [b]
+        depends: []
+        verify: "true"
+        -->
+    """,
+    )
+    with pytest.raises(SchemaError, match="task-meta blocks"):
         parse_plan(plan)
+
+
+def test_rejects_meta_block_outside_any_heading(tmp_path):
+    plan = write_plan(
+        tmp_path,
+        """
+        Intro prose, no task heading yet.
+
+        <!-- task-meta
+        id: T01
+        touches: [a]
+        depends: []
+        verify: "true"
+        -->
+    """,
+    )
+    with pytest.raises(SchemaError, match="not inside any"):
+        parse_plan(plan)
+
+
+def test_parses_h2_task_heading(tmp_path):
+    # H2 headings must be recognised identically to H3.
+    plan = write_plan(
+        tmp_path,
+        """
+        ## Task 1 — H2 heading
+
+        <!-- task-meta
+        id: T01
+        touches: [foo.py]
+        depends: []
+        verify: "true"
+        -->
+    """,
+    )
+    tasks = parse_plan(plan)
+    assert [t.id for t in tasks] == ["T01"]
 
 
 def test_rejects_duplicate_ids(tmp_path):
