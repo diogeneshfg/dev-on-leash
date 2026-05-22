@@ -135,8 +135,9 @@ def _line_index(text: str, offset: int) -> int:
 def parse_regions(plan_path: Path) -> list[TaskRegion]:
     """Split a plan into task regions, each bound to at most one task-meta block.
 
-    A region starts at a `## `/`### Task` heading and runs to the next such
-    heading (or EOF). Zero task-meta blocks in a region -> a human-run task
+    A task heading is an H2-or-deeper (`##`+) Markdown heading whose text
+    starts with `Task`. A region starts at such a heading and runs to the next
+    one (or EOF). Zero task-meta blocks in a region -> a human-run task
     (`meta is None`). Two or more -> SchemaError. A task-meta block outside
     every region -> SchemaError. Fenced example blocks are stripped first, so
     illustrative task-meta inside code fences is never counted.

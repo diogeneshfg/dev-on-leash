@@ -73,7 +73,7 @@ def test_unknown_task_id_errors(tmp_path):
 
 def test_ticks_correct_checkbox_in_plan_with_fenced_code_blocks(tmp_path):
     # Regression: _strip_fenced_blocks blanks fenced lines to "", which shifts
-    # character offsets. _tick_first_checkbox must work on line indices instead.
+    # character offsets. _tick_checkbox_in_region must work on line indices instead.
     plan = tmp_path / "plan.md"
     plan.write_text(
         textwrap.dedent("""
