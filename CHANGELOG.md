@@ -6,6 +6,9 @@ are appended automatically by `scripts/harness/cycle_done.py` when a cycle
 closes green; edit them by hand to add detail.
 
 ## [Unreleased]
+### 2026-05-22 — harness-hardening
+- Cycle closed: Harness Hardening Implementation Plan
+
 
 ## [0.2.0] — 2026-05-21
 
