@@ -55,10 +55,16 @@ heading and runs until the next such heading (or EOF). Each region carries:
 its heading line index, its end line index, and the `TaskMeta` parsed from the
 **exactly one** `task-meta` block inside it.
 
-Validation rules (raise `SchemaError`):
-- A region containing zero or two-plus `task-meta` blocks is an error
-  (replaces the current weaker `len(blocks) < len(headings)` count check).
-- A `task-meta` block that sits outside every region is an error.
+Validation rules:
+- A region with **two or more** `task-meta` blocks is a `SchemaError`.
+- A region with **zero** blocks is a valid **human-run task** — allowed,
+  returned with `meta = None`, consistent with `task-schema.md` ("a task
+  without one is human-run and ignored by the harness"). This also corrects
+  an existing contradiction: `parse_plan`'s H3-only regex makes a bare H3
+  task heading error, while `validate_plan` only *warns* for the same case.
+  The test `test_rejects_task_without_meta` is updated to assert the
+  documented lenient behavior.
+- A `task-meta` block that sits outside every region is a `SchemaError`.
 - Existing rules (id format, non-empty `touches`, unknown `depends`, duplicate
   ids, dependency cycles) are preserved.
 
@@ -151,8 +157,9 @@ Tasks 1, 2, and 7 are entrypoints (no dependencies) and parallelizable.
 
 ## Success criteria
 
-- `parse_plan` errors on a region with zero or multiple `task-meta` blocks,
-  for both H2 and H3 headings.
+- `parse_plan` errors on a region with multiple `task-meta` blocks and on a
+  block outside any heading; a heading with no block is accepted as a
+  human-run task. Behaviour is identical for H2 and H3 headings.
 - `run_task.py` ticks the correct task even when prose elsewhere contains a
   string like `id: T0x`.
 - `recheck_plan.py` exits `1` for a plan with a ticked-but-not-done task and
