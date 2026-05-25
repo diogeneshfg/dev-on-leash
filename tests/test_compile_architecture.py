@@ -85,3 +85,19 @@ def test_removing_rule_prunes_gate(project):
     _compile(project)
     gates = (project / ".harness" / "gates").read_text(encoding="utf-8")
     assert "no_requests_in_a" not in gates
+
+
+def test_violation_reported_once_with_nested_dirs(project):
+    """A violation under a nested directory is reported once, not multiple times."""
+    _compile(project)
+    nested = project / "src" / "a" / "sub" / "deeper"
+    nested.mkdir(parents=True)
+    (nested / "bad.py").write_text("import requests\n", encoding="utf-8")
+    script = project / ".harness" / "checks" / "pattern-no_requests_in_a.py"
+    result = subprocess.run(
+        [sys.executable, str(script)], cwd=project, capture_output=True, text=True
+    )
+    assert result.returncode != 0
+    # Count how many violation lines mention "bad.py" — must be exactly 1.
+    occurrences = result.stdout.count("bad.py")
+    assert occurrences == 1, f"violation reported {occurrences} times:\n{result.stdout}"

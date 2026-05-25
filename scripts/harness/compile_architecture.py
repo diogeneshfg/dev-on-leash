@@ -10,7 +10,6 @@ gates through `subprocess.call(cmd, shell=True)` — can execute them on
 Windows, macOS, and Linux without a shell dependency on PATH.
 """
 from __future__ import annotations
-import json as _json
 import pathlib
 import sys
 
@@ -47,6 +46,7 @@ def _emit_pattern_py(pattern: Pattern, arch: Architecture) -> str:
         + "    root = pathlib.Path.cwd()\n"
         + "    pat = re.compile(r'(?:^|\\b)(?:import|from)\\s+(' + '|'.join(re.escape(n) for n in FORBIDDEN) + r')\\b')\n"
         + "    violations: list[str] = []\n"
+        + "    seen: set[pathlib.Path] = set()\n"
         + "    def _files(p: pathlib.Path):\n"
         + "        if p.is_file():\n"
         + "            yield p\n"
@@ -55,8 +55,9 @@ def _emit_pattern_py(pattern: Pattern, arch: Architecture) -> str:
         + "    for glob in GLOBS:\n"
         + "        for match in root.glob(glob):\n"
         + "            for path in _files(match):\n"
-        + "                if not path.is_file():\n"
+        + "                if not path.is_file() or path in seen:\n"
         + "                    continue\n"
+        + "                seen.add(path)\n"
         + "                try:\n"
         + "                    text = path.read_text(encoding='utf-8')\n"
         + "                except (OSError, UnicodeDecodeError):\n"
