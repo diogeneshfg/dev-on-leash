@@ -50,3 +50,53 @@ patterns:
   - {id: dup, layer: b, forbidden_imports: [y]}
 """.strip()
         )
+
+
+def test_forbidden_imports_scalar_rejected():
+    with pytest.raises(ArchitectureSchemaError, match="forbidden_imports must be a list"):
+        parse_architecture(
+            """
+version: 1
+layers: [{name: a, paths: [src/a/**]}]
+allowed_dependencies: []
+patterns:
+  - {id: bad, layer: a, forbidden_imports: requests}
+""".strip()
+        )
+
+
+def test_paths_non_string_rejected():
+    with pytest.raises(ArchitectureSchemaError, match="non-empty list of strings"):
+        parse_architecture(
+            """
+version: 1
+layers:
+  - {name: a, paths: ["src/a/**", 42]}
+allowed_dependencies: []
+""".strip()
+        )
+
+
+def test_layer_name_non_string_rejected():
+    with pytest.raises(ArchitectureSchemaError, match="name must be a string"):
+        parse_architecture(
+            """
+version: 1
+layers:
+  - {name: 42, paths: [src/a/**]}
+allowed_dependencies: []
+""".strip()
+        )
+
+
+def test_duplicate_layer_name_names_offender():
+    with pytest.raises(ArchitectureSchemaError, match="duplicate layer name 'domain'"):
+        parse_architecture(
+            """
+version: 1
+layers:
+  - {name: domain, paths: [src/d1/**]}
+  - {name: domain, paths: [src/d2/**]}
+allowed_dependencies: []
+""".strip()
+        )

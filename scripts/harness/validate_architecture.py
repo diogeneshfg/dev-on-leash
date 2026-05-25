@@ -5,7 +5,7 @@ typed dataclasses; raises ArchitectureSchemaError on any violation. The
 compiler depends on this module and never re-validates fields itself.
 """
 from __future__ import annotations
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 import yaml
 
@@ -70,15 +70,26 @@ def parse_architecture(text: str) -> Architecture:
     if not isinstance(layers_raw, list):
         raise ArchitectureSchemaError("layers must be a list")
     layers: list[Layer] = []
-    for i, l in enumerate(layers_raw):
-        name = _require(l, "name", f"layers[{i}]")
-        paths = _require(l, "paths", f"layers[{i}]")
-        if not isinstance(paths, list) or not paths:
-            raise ArchitectureSchemaError(f"layers[{i}].paths must be non-empty list")
+    for i, layer_raw in enumerate(layers_raw):
+        name = _require(layer_raw, "name", f"layers[{i}]")
+        if not isinstance(name, str):
+            raise ArchitectureSchemaError(f"layers[{i}].name must be a string")
+        paths = _require(layer_raw, "paths", f"layers[{i}]")
+        if (
+            not isinstance(paths, list)
+            or not paths
+            or not all(isinstance(p, str) for p in paths)
+        ):
+            raise ArchitectureSchemaError(
+                f"layers[{i}].paths must be a non-empty list of strings"
+            )
         layers.append(Layer(name=name, paths=tuple(paths)))
-    layer_names = {l.name for l in layers}
-    if len(layer_names) != len(layers):
-        raise ArchitectureSchemaError("duplicate layer name")
+    seen_names: set[str] = set()
+    for layer in layers:
+        if layer.name in seen_names:
+            raise ArchitectureSchemaError(f"duplicate layer name {layer.name!r}")
+        seen_names.add(layer.name)
+    layer_names = seen_names
     edges: list[Edge] = []
     for i, e in enumerate(raw.get("allowed_dependencies", []) or []):
         src = _require(e, "from", f"allowed_dependencies[{i}]")
@@ -99,12 +110,22 @@ def parse_architecture(text: str) -> Architecture:
         layer = _require(p, "layer", f"patterns[{i}]")
         if layer not in layer_names:
             raise ArchitectureSchemaError(f"patterns[{i}]: unknown layer {layer!r}")
+        fi = p.get("forbidden_imports", []) or []
+        if not isinstance(fi, list):
+            raise ArchitectureSchemaError(
+                f"patterns[{i}].forbidden_imports must be a list"
+            )
+        ri = p.get("required_imports", []) or []
+        if not isinstance(ri, list):
+            raise ArchitectureSchemaError(
+                f"patterns[{i}].required_imports must be a list"
+            )
         patterns.append(
             Pattern(
                 id=pid,
                 layer=layer,
-                forbidden_imports=tuple(p.get("forbidden_imports", []) or []),
-                required_imports=tuple(p.get("required_imports", []) or []),
+                forbidden_imports=tuple(fi),
+                required_imports=tuple(ri),
                 reason=p.get("reason", "") or "",
             )
         )
