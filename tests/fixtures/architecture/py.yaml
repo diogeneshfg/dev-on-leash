@@ -1,0 +1,11 @@
+version: 1
+style: "Clean Architecture"
+layers:
+  - {name: domain, paths: [src/myapp/domain/**]}
+  - {name: application, paths: [src/myapp/application/**]}
+  - {name: infrastructure, paths: [src/myapp/infrastructure/**]}
+allowed_dependencies:
+  - {from: application, to: [domain]}
+  - {from: infrastructure, to: [application, domain]}
+patterns: []
+review_rules: []

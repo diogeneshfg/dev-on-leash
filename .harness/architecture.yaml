@@ -1,0 +1,32 @@
+version: 1
+style: "dev-on-leash internal — 3 layers (harness / plugin-interface / support)"
+
+layers:
+  - name: harness
+    paths:
+      - scripts/harness/**
+  - name: plugin_interface
+    paths:
+      - agents/**
+      - skills/**
+      - templates/**
+  - name: support
+    paths:
+      - tests/**
+      - docs/**
+
+allowed_dependencies:
+  - { from: support, to: [harness] }
+  - { from: harness, to: [] }
+  - { from: plugin_interface, to: [] }
+
+patterns:
+  - id: harness_no_network_requests
+    layer: harness
+    forbidden_imports: [requests, httpx, urllib3]
+    reason: "The harness must never phone home — no network libraries."
+
+review_rules:
+  - id: agents_read_only_tools
+    applies_to: plugin_interface
+    rule: "agents/*.md must declare a read-only tools allowlist (Read/Grep/Glob/WebFetch only). Bash and Edit are forbidden — except for the verification-gate agent, which legitimately needs Bash to run verify commands."

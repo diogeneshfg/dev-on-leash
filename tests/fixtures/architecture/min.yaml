@@ -1,0 +1,10 @@
+version: 1
+style: "Test"
+layers:
+  - {name: a, paths: [src/a/**]}
+  - {name: b, paths: [src/b/**]}
+allowed_dependencies:
+  - {from: a, to: [b]}
+patterns:
+  - {id: no_requests_in_a, layer: a, forbidden_imports: [requests]}
+review_rules: []

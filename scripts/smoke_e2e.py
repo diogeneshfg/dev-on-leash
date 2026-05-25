@@ -93,6 +93,54 @@ acceptance: null
 """
 
 
+# === ARCH-LEASH-VIOLATION: exercise the architecture leash ===
+def _exercise_architecture(tmp: pathlib.Path) -> None:
+    """Compile a small architecture.yaml in the smoke tmp project, plant a
+    deliberate `import requests` in src/a/, assert the generated check
+    script rejects it, then assert it passes when clean.
+    """
+    arch = tmp / ".harness" / "architecture.yaml"
+    arch.write_text(
+        """version: 1
+style: Smoke
+layers:
+  - {name: a, paths: [src/a/**]}
+  - {name: b, paths: [src/b/**]}
+allowed_dependencies:
+  - {from: a, to: [b]}
+patterns:
+  - {id: smoke_no_requests, layer: a, forbidden_imports: [requests]}
+review_rules: []
+""",
+        encoding="utf-8",
+    )
+    (tmp / "src" / "a").mkdir(parents=True, exist_ok=True)
+    (tmp / "src" / "b").mkdir(parents=True, exist_ok=True)
+    subprocess.run(
+        [sys.executable, str(PLUGIN_ROOT / "scripts" / "harness" / "compile_architecture.py")],
+        cwd=tmp,
+        check=True,
+    )
+    # Plant a violation and assert the gate exits non-zero.
+    violator = tmp / "src" / "a" / "bad.py"
+    violator.write_text("import requests\n", encoding="utf-8")
+    bad = subprocess.run(
+        [sys.executable, ".harness/checks/pattern-smoke_no_requests.py"],
+        cwd=tmp,
+        capture_output=True,
+        text=True,
+    )
+    assert bad.returncode != 0, "gate should reject violation"
+    violator.unlink()
+    good = subprocess.run(
+        [sys.executable, ".harness/checks/pattern-smoke_no_requests.py"],
+        cwd=tmp,
+        capture_output=True,
+        text=True,
+    )
+    assert good.returncode == 0, "gate should pass when clean"
+
+
 def _run(cmd: list[str], cwd: str | None = None) -> tuple[int, str]:
     """Run a command; return (returncode, combined stdout+stderr)."""
     proc = subprocess.run(
@@ -112,7 +160,7 @@ def main(argv: list[str]) -> int:
     def step(n: int, label: str, ok: bool, detail: str = "") -> None:
         nonlocal failed
         mark = "OK" if ok else "FAIL"
-        line = f"[{n}/7] {label:<41} {mark}"
+        line = f"[{n}/8] {label:<41} {mark}"
         if detail:
             line += f"  {detail}"
         print(line)
@@ -185,6 +233,13 @@ def main(argv: list[str]) -> int:
         step(7, "recheck_plan: clean OK, broken REJECTED",
              rc_clean == 0 and rc_broken == 1,
              "enforcement: ticked work re-verified")
+
+        # 8 — exercise the architecture leash: compile, plant violation, assert gate fires
+        try:
+            _exercise_architecture(repo)
+            step(8, "arch-leash: gate rejects violation, passes clean", True)
+        except Exception as exc:  # noqa: BLE001
+            step(8, "arch-leash: gate rejects violation, passes clean", False, str(exc))
 
     finally:
         elapsed = time.time() - t0

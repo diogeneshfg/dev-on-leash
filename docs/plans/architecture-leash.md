@@ -25,9 +25,20 @@ rules. Mechanical rules become `.harness/gates` lines (hard CI block).
 Judgment rules live in the reviewer agent (advisory).
 
 **Tech Stack:** Python 3.12, `pyyaml`, `pytest`; Markdown skills with YAML
-frontmatter; POSIX `sh` + PowerShell generated check scripts.
+frontmatter; cross-platform Python generated check scripts.
 
 **Spec:** `docs/superpowers/specs/2026-05-25-architecture-leash-design.md`
+
+**Deliberate spec deviation:** The spec (Section 3 point 3) calls for emitting
+`pattern-<id>.sh` + `pattern-<id>.ps1` pairs. During plan-time we confirmed
+that `cycle_done.py` runs gates via `subprocess.call(cmd, shell=True)`, which
+hits `cmd.exe` on Windows — so a `sh ...` gate line breaks on Windows where
+`sh` isn't on PATH. Existing project pattern (`check_regression.{sh,ps1,py}`)
+already keeps a `.py` sibling specifically to be the cross-platform gate. So
+this plan emits **only** `pattern-<id>.py` (gates run it with
+`python .harness/checks/pattern-<id>.py`). The spec will be amended at cycle
+close to reflect this; the deviation is recorded here so the spec-reviewer
+agent recognizes it as intentional.
 
 ---
 
@@ -50,7 +61,7 @@ frontmatter; POSIX `sh` + PowerShell generated check scripts.
 - `scripts/dogfood_architecture.py` — dogfood verifier (asserts artifacts exist, asserts a deliberate-violation gate exits non-zero).
 - `.harness/architecture.yaml` — created by running the skill on dev-on-leash in T11.
 - `agents/architecture-reviewer.md` — generated in T11 (target-local copy in dev-on-leash's own repo).
-- `.harness/checks/pattern-*.{sh,ps1}` — generated in T11.
+- `.harness/checks/pattern-*.py` — generated in T11.
 - `.harness/importlinter.ini` — generated in T11.
 
 **Modify:**
@@ -289,7 +300,7 @@ git add scripts/harness/validate_architecture.py tests/test_validate_architectur
 git commit -m "feat(arch-leash): add architecture.yaml schema validator"
 ```
 
-- [ ] **Task 1 complete**
+- [x] **Task 1 complete**
 
 <!-- task-meta
 id: T01
@@ -408,7 +419,7 @@ git add agents/architecture-extractor.md tests/test_agents.py
 git commit -m "feat(arch-leash): add architecture-extractor subagent"
 ```
 
-- [ ] **Task 2 complete**
+- [x] **Task 2 complete**
 
 <!-- task-meta
 id: T02
@@ -522,7 +533,7 @@ git add templates/architecture-reviewer.md.tmpl tests/test_templates.py
 git commit -m "feat(arch-leash): add architecture-reviewer template"
 ```
 
-- [ ] **Task 3 complete**
+- [x] **Task 3 complete**
 
 <!-- task-meta
 id: T03
@@ -593,7 +604,7 @@ git add templates/AGENTS.md.tmpl tests/test_templates.py
 git commit -m "feat(arch-leash): add OPTIONAL:ARCHITECTURE stub to AGENTS template"
 ```
 
-- [ ] **Task 4 complete**
+- [x] **Task 4 complete**
 
 <!-- task-meta
 id: T04
@@ -673,14 +684,35 @@ def _compile(proj):
 def test_compile_emits_grep_script_and_gate(project):
     result = _compile(project)
     assert result.returncode == 0, result.stderr
-    check = project / ".harness" / "checks" / "pattern-no_requests_in_a.sh"
+    check = project / ".harness" / "checks" / "pattern-no_requests_in_a.py"
     assert check.exists()
     text = check.read_text(encoding="utf-8")
     assert "GENERATED" in text
     assert "requests" in text
     gates = (project / ".harness" / "gates").read_text(encoding="utf-8")
     assert "# arch-leash:no_requests_in_a" in gates
-    assert "pattern-no_requests_in_a.sh" in gates
+    assert "pattern-no_requests_in_a.py" in gates
+    # Cross-platform: the gate line must invoke python, not sh/pwsh.
+    assert "python" in gates
+
+
+def test_check_script_runs_clean_on_no_violation(project):
+    _compile(project)
+    script = project / ".harness" / "checks" / "pattern-no_requests_in_a.py"
+    result = subprocess.run(
+        [sys.executable, str(script)], cwd=project, capture_output=True, text=True
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_check_script_fails_on_violation(project):
+    _compile(project)
+    (project / "src" / "a" / "bad.py").write_text("import requests\n", encoding="utf-8")
+    script = project / ".harness" / "checks" / "pattern-no_requests_in_a.py"
+    result = subprocess.run(
+        [sys.executable, str(script)], cwd=project, capture_output=True, text=True
+    )
+    assert result.returncode != 0, "check should reject forbidden import"
 
 
 def test_compile_is_idempotent(project):
@@ -719,8 +751,13 @@ Deterministic. No model calls. Re-runnable: every run produces the same
 output for the same input. Files emitted carry a GENERATED header so the
 compiler knows what it owns; gate lines carry `# arch-leash:<id>` so
 removed rules can be pruned cleanly.
+
+Check scripts are emitted as Python (.py) so cycle_done.py — which runs
+gates through `subprocess.call(cmd, shell=True)` — can execute them on
+Windows, macOS, and Linux without a shell dependency on PATH.
 """
 from __future__ import annotations
+import json as _json
 import pathlib
 import sys
 
@@ -732,26 +769,50 @@ from scripts.harness.validate_architecture import (
     parse_architecture,
 )
 
-GENERATED_HEADER_SH = (
-    "# GENERATED by scripts/harness/compile_architecture.py from .harness/architecture.yaml\n"
-    "# Edit architecture.yaml and recompile; hand edits here will be overwritten.\n"
+GENERATED_HEADER_PY = (
+    '"""GENERATED by scripts/harness/compile_architecture.py from .harness/architecture.yaml.\n'
+    "Edit architecture.yaml and recompile; hand edits here will be overwritten.\n"
+    '"""\n'
 )
 
 
-def _emit_pattern_sh(pattern: Pattern, arch: Architecture) -> str:
+def _emit_pattern_py(pattern: Pattern, arch: Architecture) -> str:
     layer = next(l for l in arch.layers if l.name == pattern.layer)
-    needles = " ".join(f"-e {imp!r}" for imp in pattern.forbidden_imports)
-    globs = " ".join(layer.paths)
+    forbidden = list(pattern.forbidden_imports)
+    globs = list(layer.paths)
     return (
-        "#!/usr/bin/env sh\n"
-        + GENERATED_HEADER_SH
-        + f"# Rule: {pattern.id} — forbids {list(pattern.forbidden_imports)} in layer {pattern.layer!r}\n"
-        + f"set -e\n"
-        + f"if grep -rE {needles} {globs} 2>/dev/null; then\n"
-        + f'  echo "arch-leash: rule {pattern.id} violated"\n'
-        + f"  exit 1\n"
-        + f"fi\n"
-        + f"exit 0\n"
+        GENERATED_HEADER_PY
+        + f"# Rule: {pattern.id} — forbids {forbidden!r} in layer {pattern.layer!r}\n"
+        + "from __future__ import annotations\n"
+        + "import pathlib\n"
+        + "import re\n"
+        + "import sys\n\n"
+        + f"FORBIDDEN = {forbidden!r}\n"
+        + f"GLOBS = {globs!r}\n"
+        + f"RULE_ID = {pattern.id!r}\n\n"
+        + "def main() -> int:\n"
+        + "    root = pathlib.Path.cwd()\n"
+        + "    pat = re.compile(r'(?:^|\\b)(?:import|from)\\s+(' + '|'.join(re.escape(n) for n in FORBIDDEN) + r')\\b')\n"
+        + "    violations: list[str] = []\n"
+        + "    for glob in GLOBS:\n"
+        + "        for path in root.glob(glob):\n"
+        + "            if not path.is_file():\n"
+        + "                continue\n"
+        + "            try:\n"
+        + "                text = path.read_text(encoding='utf-8')\n"
+        + "            except (OSError, UnicodeDecodeError):\n"
+        + "                continue\n"
+        + "            for lineno, line in enumerate(text.splitlines(), 1):\n"
+        + "                if pat.search(line):\n"
+        + "                    violations.append(f\"{path}:{lineno}: {line.strip()}\")\n"
+        + "    if violations:\n"
+        + "        print(f\"arch-leash: rule {RULE_ID} violated:\")\n"
+        + "        for v in violations:\n"
+        + "            print(f\"  {v}\")\n"
+        + "        return 1\n"
+        + "    return 0\n\n"
+        + "if __name__ == '__main__':\n"
+        + "    raise SystemExit(main())\n"
     )
 
 
@@ -769,16 +830,16 @@ def compile_architecture(root: pathlib.Path) -> None:
     checks_dir.mkdir(parents=True, exist_ok=True)
 
     # Drop any previously-generated check files; we regenerate every time.
-    for existing in checks_dir.glob("pattern-*.sh"):
+    for existing in checks_dir.glob("pattern-*.py"):
         if "GENERATED by scripts/harness/compile_architecture.py" in existing.read_text(encoding="utf-8"):
             existing.unlink()
 
     new_gate_lines: list[str] = []
     for pattern in arch.patterns:
-        script_path = checks_dir / f"pattern-{pattern.id}.sh"
-        script_path.write_text(_emit_pattern_sh(pattern, arch), encoding="utf-8")
+        script_path = checks_dir / f"pattern-{pattern.id}.py"
+        script_path.write_text(_emit_pattern_py(pattern, arch), encoding="utf-8")
         new_gate_lines.append(
-            f"sh .harness/checks/pattern-{pattern.id}.sh  # arch-leash:{pattern.id}"
+            f"python .harness/checks/pattern-{pattern.id}.py  # arch-leash:{pattern.id}"
         )
 
     gates_path = root / ".harness" / "gates"
@@ -808,7 +869,7 @@ git add scripts/harness/compile_architecture.py tests/test_compile_architecture.
 git commit -m "feat(arch-leash): compiler generic adapter + traceability"
 ```
 
-- [ ] **Task 5 complete**
+- [x] **Task 5 complete**
 
 <!-- task-meta
 id: T05
@@ -978,7 +1039,7 @@ git add scripts/harness/compile_architecture.py tests/test_compile_architecture.
 git commit -m "feat(arch-leash): Python adapter via import-linter"
 ```
 
-- [ ] **Task 6 complete**
+- [x] **Task 6 complete**
 
 <!-- task-meta
 id: T06
@@ -1117,7 +1178,7 @@ git add scripts/harness/compile_architecture.py tests/test_compile_architecture.
 git commit -m "feat(arch-leash): JS/TS adapter via dependency-cruiser"
 ```
 
-- [ ] **Task 7 complete**
+- [x] **Task 7 complete**
 
 <!-- task-meta
 id: T07
@@ -1315,7 +1376,7 @@ git add skills/compose-architecture-leash/SKILL.md tests/test_skill_compose.py
 git commit -m "feat(arch-leash): compose-architecture-leash skill (first-run flow)"
 ```
 
-- [ ] **Task 8 complete**
+- [x] **Task 8 complete**
 
 <!-- task-meta
 id: T08
@@ -1435,7 +1496,7 @@ git add skills/compose-architecture-leash/SKILL.md tests/test_skill_compose.py
 git commit -m "feat(arch-leash): re-run modes (add/revise/re-describe)"
 ```
 
-- [ ] **Task 9 complete**
+- [x] **Task 9 complete**
 
 <!-- task-meta
 id: T09
@@ -1515,7 +1576,7 @@ review_rules: []
     violator = tmp / "src" / "a" / "bad.py"
     violator.write_text("import requests\n", encoding="utf-8")
     bad = subprocess.run(
-        ["sh", ".harness/checks/pattern-smoke_no_requests.sh"],
+        [sys.executable, ".harness/checks/pattern-smoke_no_requests.py"],
         cwd=tmp,
         capture_output=True,
         text=True,
@@ -1523,7 +1584,7 @@ review_rules: []
     assert bad.returncode != 0, "gate should reject violation"
     violator.unlink()
     good = subprocess.run(
-        ["sh", ".harness/checks/pattern-smoke_no_requests.sh"],
+        [sys.executable, ".harness/checks/pattern-smoke_no_requests.py"],
         cwd=tmp,
         capture_output=True,
         text=True,
@@ -1546,7 +1607,7 @@ git add scripts/smoke_e2e.py tests/test_smoke.py
 git commit -m "test(arch-leash): e2e smoke step exercises the new gates"
 ```
 
-- [ ] **Task 10 complete**
+- [x] **Task 10 complete**
 
 <!-- task-meta
 id: T10
@@ -1571,7 +1632,7 @@ rejected by the gates.
 **Files:**
 - Create: `.harness/architecture.yaml` (this repo)
 - Create: `.harness/importlinter.ini` (this repo, generated)
-- Create: `.harness/checks/pattern-*.sh` (this repo, generated)
+- Create: `.harness/checks/pattern-*.py` (this repo, generated)
 - Create: `agents/architecture-reviewer.md` (this repo, generated — distinct
   from the plugin's `templates/architecture-reviewer.md.tmpl`)
 - Modify: `AGENTS.md` (this repo, `OPTIONAL:ARCHITECTURE` block populated)
@@ -1655,24 +1716,31 @@ def main() -> int:
 
     # Pick the first arch-leash check script and exercise it with a
     # deliberate violation in a temp file inside the harness layer.
-    checks = list((ROOT / ".harness" / "checks").glob("pattern-*.sh"))
+    checks = list((ROOT / ".harness" / "checks").glob("pattern-*.py"))
     if not checks:
         print("MISSING: at least one pattern check", file=sys.stderr)
         return 1
     script = checks[0]
-    # Read the forbidden needle from the script (one of -e 'foo' tokens).
+    # Read the FORBIDDEN list literal from the generated script.
     text = script.read_text(encoding="utf-8")
     import re
+    import ast
 
-    m = re.search(r"-e '([^']+)'", text)
+    m = re.search(r"^FORBIDDEN = (.+)$", text, re.MULTILINE)
     if not m:
-        print(f"unable to extract needle from {script}", file=sys.stderr)
+        print(f"unable to extract FORBIDDEN from {script}", file=sys.stderr)
         return 1
-    needle = m.group(1)
+    forbidden = ast.literal_eval(m.group(1))
+    if not forbidden:
+        print(f"FORBIDDEN list empty in {script}", file=sys.stderr)
+        return 1
+    needle = forbidden[0]
     violator = ROOT / "scripts" / "harness" / "_arch_leash_violator.py"
     violator.write_text(f"import {needle}\n", encoding="utf-8")
     try:
-        result = subprocess.run(["sh", str(script)], cwd=ROOT, capture_output=True)
+        result = subprocess.run(
+            [sys.executable, str(script)], cwd=ROOT, capture_output=True
+        )
         if result.returncode == 0:
             print(f"FAIL: gate {script.name} accepted a violation", file=sys.stderr)
             return 1
@@ -1696,7 +1764,7 @@ git commit -m "dogfood(arch-leash): apply leash to dev-on-leash itself"
 8. Run the verifier locally: `python scripts/dogfood_architecture.py` —
    expect `OK`.
 
-- [ ] **Task 11 complete**
+- [x] **Task 11 complete**
 
 <!-- task-meta
 id: T11
