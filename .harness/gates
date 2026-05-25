@@ -1,0 +1,5 @@
+# Gates
+python scripts/harness/check_regression.py
+
+python .harness/checks/pattern-harness_no_network_requests.py  # arch-leash:harness_no_network_requests
+python -m importlinter --config .harness/importlinter.ini  # arch-leash:py_edges

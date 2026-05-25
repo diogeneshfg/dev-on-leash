@@ -9,7 +9,7 @@ coverage.xml
 htmlcov/
 
 # Harness runtime
-.harness/
+.harness/exceptions.log
 
 # OS / editor
 .DS_Store
