@@ -149,3 +149,31 @@ def test_python_adapter_skipped_when_no_pyproject(project):
     assert not (project / ".harness" / "importlinter.ini").exists()
     gates = (project / ".harness" / "gates").read_text(encoding="utf-8")
     assert "importlinter" not in gates
+
+
+def test_python_adapter_skips_unresolvable_layer(tmp_path):
+    proj = tmp_path / "edge_proj"
+    (proj / ".harness").mkdir(parents=True)
+    (proj / ".harness" / "architecture.yaml").write_text(
+        """version: 1
+style: Edge
+layers:
+  - {name: top, paths: [src/**]}
+  - {name: core, paths: [src/core/**]}
+allowed_dependencies:
+  - {from: top, to: [core]}
+patterns: []
+review_rules: []
+""",
+        encoding="utf-8",
+    )
+    (proj / ".harness" / "gates").write_text("# Gates\n", encoding="utf-8")
+    (proj / "pyproject.toml").write_text('[project]\nname="x"\nversion="0"\n', encoding="utf-8")
+    (proj / "src" / "core").mkdir(parents=True)
+
+    result = _compile(proj)
+    assert result.returncode == 0, result.stderr
+    ini = (proj / ".harness" / "importlinter.ini").read_text(encoding="utf-8")
+    # The only candidate forbidden pair is core->top, and `top` resolves to ''
+    # (empty root). The contract must NOT be emitted with blank modules.
+    assert "core__to__top" not in ini

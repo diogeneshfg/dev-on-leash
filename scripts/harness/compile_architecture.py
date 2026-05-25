@@ -38,7 +38,11 @@ def _detect_python(root: pathlib.Path) -> bool:
 
 
 def _layer_module_root(layer_paths: tuple[str, ...]) -> str:
-    """Derive a Python dotted package from a glob like 'src/myapp/domain/**'."""
+    """Derive a Python dotted package from a glob like 'src/myapp/domain/**'.
+
+    v1: only the first non-empty path is used. Multi-glob layers are a known
+    limitation.
+    """
     for p in layer_paths:
         parts = [seg for seg in p.replace("\\", "/").split("/") if seg and seg != "**"]
         if parts and parts[0] == "src":
@@ -68,6 +72,14 @@ def _emit_importlinter_ini(arch: Architecture) -> str:
     for a, b in forbidden_pairs:
         a_root = _layer_module_root(next(l.paths for l in arch.layers if l.name == a))
         b_root = _layer_module_root(next(l.paths for l in arch.layers if l.name == b))
+        if not a_root or not b_root:
+            print(
+                f"warning: skipping contract {a}__to__{b} — could not derive a module root "
+                f"(a_root={a_root!r}, b_root={b_root!r}). Layer paths must include a package "
+                f"segment beyond just 'src/'.",
+                file=sys.stderr,
+            )
+            continue
         out.append(
             f"[importlinter:contract:{a}__to__{b}]\n"
             f"name = {a} must not import {b}\n"
