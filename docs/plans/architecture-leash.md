@@ -300,7 +300,7 @@ git add scripts/harness/validate_architecture.py tests/test_validate_architectur
 git commit -m "feat(arch-leash): add architecture.yaml schema validator"
 ```
 
-- [ ] **Task 1 complete**
+- [x] **Task 1 complete**
 
 <!-- task-meta
 id: T01
@@ -419,7 +419,7 @@ git add agents/architecture-extractor.md tests/test_agents.py
 git commit -m "feat(arch-leash): add architecture-extractor subagent"
 ```
 
-- [ ] **Task 2 complete**
+- [x] **Task 2 complete**
 
 <!-- task-meta
 id: T02
@@ -533,7 +533,7 @@ git add templates/architecture-reviewer.md.tmpl tests/test_templates.py
 git commit -m "feat(arch-leash): add architecture-reviewer template"
 ```
 
-- [ ] **Task 3 complete**
+- [x] **Task 3 complete**
 
 <!-- task-meta
 id: T03
@@ -604,7 +604,7 @@ git add templates/AGENTS.md.tmpl tests/test_templates.py
 git commit -m "feat(arch-leash): add OPTIONAL:ARCHITECTURE stub to AGENTS template"
 ```
 
-- [ ] **Task 4 complete**
+- [x] **Task 4 complete**
 
 <!-- task-meta
 id: T04
@@ -869,7 +869,7 @@ git add scripts/harness/compile_architecture.py tests/test_compile_architecture.
 git commit -m "feat(arch-leash): compiler generic adapter + traceability"
 ```
 
-- [ ] **Task 5 complete**
+- [x] **Task 5 complete**
 
 <!-- task-meta
 id: T05
@@ -1039,7 +1039,7 @@ git add scripts/harness/compile_architecture.py tests/test_compile_architecture.
 git commit -m "feat(arch-leash): Python adapter via import-linter"
 ```
 
-- [ ] **Task 6 complete**
+- [x] **Task 6 complete**
 
 <!-- task-meta
 id: T06
@@ -1178,7 +1178,7 @@ git add scripts/harness/compile_architecture.py tests/test_compile_architecture.
 git commit -m "feat(arch-leash): JS/TS adapter via dependency-cruiser"
 ```
 
-- [ ] **Task 7 complete**
+- [x] **Task 7 complete**
 
 <!-- task-meta
 id: T07
@@ -1376,7 +1376,7 @@ git add skills/compose-architecture-leash/SKILL.md tests/test_skill_compose.py
 git commit -m "feat(arch-leash): compose-architecture-leash skill (first-run flow)"
 ```
 
-- [ ] **Task 8 complete**
+- [x] **Task 8 complete**
 
 <!-- task-meta
 id: T08
@@ -1496,7 +1496,7 @@ git add skills/compose-architecture-leash/SKILL.md tests/test_skill_compose.py
 git commit -m "feat(arch-leash): re-run modes (add/revise/re-describe)"
 ```
 
-- [ ] **Task 9 complete**
+- [x] **Task 9 complete**
 
 <!-- task-meta
 id: T09
@@ -1607,7 +1607,7 @@ git add scripts/smoke_e2e.py tests/test_smoke.py
 git commit -m "test(arch-leash): e2e smoke step exercises the new gates"
 ```
 
-- [ ] **Task 10 complete**
+- [x] **Task 10 complete**
 
 <!-- task-meta
 id: T10
@@ -1764,7 +1764,7 @@ git commit -m "dogfood(arch-leash): apply leash to dev-on-leash itself"
 8. Run the verifier locally: `python scripts/dogfood_architecture.py` —
    expect `OK`.
 
-- [ ] **Task 11 complete**
+- [x] **Task 11 complete**
 
 <!-- task-meta
 id: T11
