@@ -101,3 +101,51 @@ def test_violation_reported_once_with_nested_dirs(project):
     # Count how many violation lines mention "bad.py" — must be exactly 1.
     occurrences = result.stdout.count("bad.py")
     assert occurrences == 1, f"violation reported {occurrences} times:\n{result.stdout}"
+
+
+@pytest.fixture
+def py_project(tmp_path):
+    proj = tmp_path / "py_proj"
+    (proj / ".harness").mkdir(parents=True)
+    shutil.copy(FIXTURES / "py.yaml", proj / ".harness" / "architecture.yaml")
+    (proj / ".harness" / "gates").write_text("# Gates\n", encoding="utf-8")
+    (proj / "pyproject.toml").write_text(
+        '[project]\nname="myapp"\nversion="0"\n', encoding="utf-8"
+    )
+    for layer in ("domain", "application", "infrastructure"):
+        (proj / "src" / "myapp" / layer).mkdir(parents=True)
+        (proj / "src" / "myapp" / layer / "__init__.py").write_text("", encoding="utf-8")
+    return proj
+
+
+def test_python_adapter_writes_importlinter_ini(py_project):
+    _compile(py_project)
+    ini = py_project / ".harness" / "importlinter.ini"
+    assert ini.exists()
+    text = ini.read_text(encoding="utf-8")
+    assert "GENERATED" in text
+    assert "[importlinter]" in text
+    assert "domain" in text and "infrastructure" in text
+
+
+def test_python_adapter_appends_gate_line(py_project):
+    _compile(py_project)
+    gates = (py_project / ".harness" / "gates").read_text(encoding="utf-8")
+    assert "python -m importlinter" in gates
+    assert "# arch-leash:py_edges" in gates
+
+
+def test_python_adapter_forbids_domain_to_infrastructure(py_project):
+    """The implicit forbidden edge `domain -> infrastructure` must appear as a contract."""
+    _compile(py_project)
+    ini = (py_project / ".harness" / "importlinter.ini").read_text(encoding="utf-8")
+    # Each forbidden contract is named by edge: "domain__to__infrastructure"
+    assert "domain__to__infrastructure" in ini
+
+
+def test_python_adapter_skipped_when_no_pyproject(project):
+    """The generic fixture has no pyproject.toml; importlinter.ini must NOT be emitted."""
+    _compile(project)
+    assert not (project / ".harness" / "importlinter.ini").exists()
+    gates = (project / ".harness" / "gates").read_text(encoding="utf-8")
+    assert "importlinter" not in gates
