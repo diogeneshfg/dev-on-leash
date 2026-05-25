@@ -10,6 +10,7 @@ gates through `subprocess.call(cmd, shell=True)` — can execute them on
 Windows, macOS, and Linux without a shell dependency on PATH.
 """
 from __future__ import annotations
+import json as _json
 import pathlib
 import sys
 
@@ -138,6 +139,47 @@ def _emit_pattern_py(pattern: Pattern, arch: Architecture) -> str:
     )
 
 
+def _detect_js(root: pathlib.Path) -> bool:
+    return (root / "package.json").exists()
+
+
+def _emit_dependency_cruiser(arch: Architecture) -> str:
+    allowed: dict[str, set[str]] = {l.name: set() for l in arch.layers}
+    for edge in arch.allowed_dependencies:
+        allowed[edge.src].update(edge.dst)
+    names = [l.name for l in arch.layers]
+    layer_glob: dict[str, str | None] = {}
+    for l in arch.layers:
+        layer_glob[l.name] = l.paths[0] if l.paths else None
+    forbidden = []
+    for a in names:
+        for b in names:
+            if a == b or b in allowed[a]:
+                continue
+            ga = layer_glob.get(a)
+            gb = layer_glob.get(b)
+            if not ga or not gb:
+                print(
+                    f"warning: skipping JS rule {a}__to__{b} — layer path missing",
+                    file=sys.stderr,
+                )
+                continue
+            forbidden.append(
+                {
+                    "name": f"{a}__to__{b}",
+                    "comment": f"{a} must not import {b}",
+                    "severity": "error",
+                    "from": {"path": ga},
+                    "to": {"path": gb},
+                }
+            )
+    payload = {
+        "_generated_by": "scripts/harness/compile_architecture.py",
+        "forbidden": forbidden,
+    }
+    return _json.dumps(payload, indent=2) + "\n"
+
+
 def _gates_without_arch_lines(text: str) -> list[str]:
     return [
         line for line in text.splitlines(keepends=False)
@@ -169,6 +211,13 @@ def compile_architecture(root: pathlib.Path) -> None:
         ini_path.write_text(_emit_importlinter_ini(arch), encoding="utf-8")
         new_gate_lines.append(
             "python -m importlinter --config .harness/importlinter.ini  # arch-leash:py_edges"
+        )
+
+    if _detect_js(root):
+        cfg_path = root / ".harness" / "dependency-cruiser.json"
+        cfg_path.write_text(_emit_dependency_cruiser(arch), encoding="utf-8")
+        new_gate_lines.append(
+            "npx --no -- depcruise --config .harness/dependency-cruiser.json src  # arch-leash:js_edges"
         )
 
     gates_path = root / ".harness" / "gates"

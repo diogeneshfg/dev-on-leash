@@ -1,4 +1,5 @@
 """Compiler tests — generic adapter, idempotency, gate tagging."""
+import json
 import pathlib
 import shutil
 import subprocess
@@ -149,6 +150,46 @@ def test_python_adapter_skipped_when_no_pyproject(project):
     assert not (project / ".harness" / "importlinter.ini").exists()
     gates = (project / ".harness" / "gates").read_text(encoding="utf-8")
     assert "importlinter" not in gates
+
+
+@pytest.fixture
+def js_project(tmp_path):
+    proj = tmp_path / "js_proj"
+    (proj / ".harness").mkdir(parents=True)
+    shutil.copy(FIXTURES / "js.yaml", proj / ".harness" / "architecture.yaml")
+    (proj / ".harness" / "gates").write_text("# Gates\n", encoding="utf-8")
+    (proj / "package.json").write_text('{"name":"x","version":"0.0.0"}', encoding="utf-8")
+    for layer in ("model", "view", "controller"):
+        (proj / "src" / layer).mkdir(parents=True)
+    return proj
+
+
+def test_js_adapter_emits_dependency_cruiser_json(js_project):
+    _compile(js_project)
+    cfg = js_project / ".harness" / "dependency-cruiser.json"
+    assert cfg.exists()
+    data = json.loads(cfg.read_text(encoding="utf-8"))
+    assert data["_generated_by"].endswith("compile_architecture.py")
+    rule_names = {r["name"] for r in data["forbidden"]}
+    # model must not depend on view (no edge model -> view declared)
+    assert "model__to__view" in rule_names
+    # 3 forbidden pairs expected
+    assert len(data["forbidden"]) == 3
+
+
+def test_js_adapter_appends_gate_line(js_project):
+    _compile(js_project)
+    gates = (js_project / ".harness" / "gates").read_text(encoding="utf-8")
+    assert "depcruise" in gates
+    assert "# arch-leash:js_edges" in gates
+
+
+def test_js_adapter_skipped_when_no_package_json(project):
+    """The generic fixture has no package.json; dependency-cruiser.json must NOT be emitted."""
+    _compile(project)
+    assert not (project / ".harness" / "dependency-cruiser.json").exists()
+    gates = (project / ".harness" / "gates").read_text(encoding="utf-8")
+    assert "depcruise" not in gates
 
 
 def test_python_adapter_skips_unresolvable_layer(tmp_path):

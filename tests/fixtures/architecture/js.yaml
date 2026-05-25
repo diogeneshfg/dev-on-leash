@@ -1,0 +1,11 @@
+version: 1
+style: "Layered MVC"
+layers:
+  - {name: model, paths: [src/model/**]}
+  - {name: view,  paths: [src/view/**]}
+  - {name: controller, paths: [src/controller/**]}
+allowed_dependencies:
+  - {from: controller, to: [model, view]}
+  - {from: view, to: [model]}
+patterns: []
+review_rules: []
