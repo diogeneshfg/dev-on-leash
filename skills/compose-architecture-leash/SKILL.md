@@ -102,8 +102,76 @@ Summarize, in three or four lines:
 - The single command to recompile after a hand-edit of
   `architecture.yaml`: `python scripts/harness/compile_architecture.py`.
 
-## Re-run mode (placeholder — populated in T09)
+## Re-run mode picker
 
-If `.harness/architecture.yaml` already exists, prompt the user to pick
-**add** / **revise** / **re-describe** and follow the corresponding flow.
-The details of each mode are added by T09.
+When `.harness/architecture.yaml` already exists, ask the user one
+multiple-choice question:
+
+- **add** — describe a new architectural aspect to layer on top.
+- **revise** — change one or more existing rules by id.
+- **re-describe** — re-extract the whole spec from a fresh description.
+
+### Mode: add
+
+1. Prompt: "What aspect do you want to add? Describe just the addition."
+2. Dispatch `dev-on-leash:architecture-extractor` with the message header
+   `MODE: ADD` so the extractor returns ONLY the new entries as a YAML
+   fragment. The extractor must not restate or rewrite any existing entry.
+3. **Fragment contract** (load-bearing): the YAML fragment the extractor
+   returns must use the same top-level keys as the full architecture.yaml
+   schema (`layers`, `allowed_dependencies`, `patterns`, `review_rules`).
+   Any top-level key that has no new entries is OMITTED entirely from the
+   fragment — empty lists are NOT permitted. The fragment must NOT include
+   `version` or `style`; those carry over from the existing file.
+4. The **skill performs the merge** into `architecture.yaml` — the
+   subagent never touches the existing file. The merge appends new entries
+   under each present top-level key. If the merged file references an
+   `allowed_dependencies` edge whose `from` or `to` layer was not added in
+   the same fragment AND does not already exist in the file, the skill
+   rejects the fragment and asks the user to either (a) add the missing
+   layer in this same fragment or (b) declare it in a separate `add` run
+   first.
+5. Validate the merged YAML with
+   `python scripts/harness/validate_architecture.py` (or by importing
+   `parse_architecture` from the validator) before writing.
+6. Show a YAML diff (the new entries highlighted) plus rationale.
+7. Confirm-and-edit loop, then recompile (`python scripts/harness/compile_architecture.py`)
+   and re-render the `OPTIONAL:ARCHITECTURE` block in `AGENTS.md` as in
+   first-run Step 5.
+
+### Mode: revise
+
+1. Show the current `architecture.yaml` as a numbered list of rules, each
+   labeled with its stable `id` (layer name for layers; `id` field for
+   everything else).
+2. Prompt: "Which rule(s) by id, and what should change?"
+3. Dispatch the extractor with just those rules and the user's correction.
+   It returns the rewritten entries; everything else in the YAML is
+   preserved byte-for-byte by the skill.
+4. Re-validate the resulting YAML with the validator.
+5. Confirm-and-edit loop, then write / compile / re-render.
+
+### Mode: re-describe
+
+1. Same prose interview as first-run.
+2. Dispatch the extractor with the full prose.
+3. Re-validate the proposed YAML with the validator.
+4. Side-by-side diff between old and new YAML, organized by rule id —
+   added, removed, modified — with a rationale per change.
+5. Confirm-and-edit loop. The user can accept all, accept selectively by
+   id, or start over.
+6. On accept: save the old YAML to
+   `.harness/architecture.yaml.bak-<UTC ISO timestamp>` (one backup only;
+   overwrites any prior `.bak-` for this run — git is the real history).
+   Then write the new YAML, recompile, re-render.
+
+## Invariants across all three modes
+
+- The compiler only runs if `architecture.yaml` actually changed.
+- Every generated gate line carries `# arch-leash:<id>`. Orphaned lines
+  (from removed rules) are pruned on the next compile.
+- `agents/architecture-reviewer.md` is FULLY regenerated each compile.
+- The `OPTIONAL:ARCHITECTURE` block in `AGENTS.md` is FULLY regenerated
+  between its markers.
+- Same diff-and-confirm rule as bootstrap applies before overwriting any
+  hand-editable file.
