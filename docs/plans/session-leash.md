@@ -2604,7 +2604,7 @@ git add scripts/dogfood_session.py scripts/smoke_e2e.py tests/test_smoke.py
 git commit -m "feat(session-leash): T10 dogfood script + smoke_e2e step (load-bearing)"
 ```
 
-- [ ] **Task 10 complete**
+- [x] **Task 10 complete**
 
 <!-- task-meta
 id: T10
