@@ -117,6 +117,30 @@ ruff check .
 
 If the project has no verification commands at all, still write `.harness/gates` with just the comment header — `cycle_done` then closes on checkbox state alone, and the user has an obvious place to add gates later.
 
+## Step 3c — Patch the target project's `.gitignore`
+
+The harness writes runtime files to `.harness/` that must NEVER be
+committed:
+
+- `.harness/exceptions.log` — audit log for `cycle_done --force`.
+- `.harness/sessions/<pid>.json` — per-session lockfiles written by the
+  session-leash `SessionStart` hook. They record live PIDs and
+  worktree paths.
+
+Read the target project's `.gitignore` (create it if absent). Ensure
+both of these lines are present; add whichever is missing, leaving the
+file otherwise byte-identical:
+
+```
+.harness/exceptions.log
+.harness/sessions/
+```
+
+If you must add lines, group them under a `# dev-on-leash` comment
+heading that you also add when missing — so the patched lines are
+discoverable later. Do NOT duplicate a line that is already present
+(an exact match anywhere in the file counts as present).
+
 ## Step 4 — Copy the project-agnostic layer
 
 Invoke the plugin's init script to drop the agnostic layer into the target project. The script **requires** the target repo path as its first argument — omitting it causes the script to exit 1 with an error. Since the skill runs from the target project root, pass `.` as the target path. Use the script matching the OS:

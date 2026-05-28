@@ -463,6 +463,8 @@ git add scripts/harness/session_lockfile.py tests/harness/test_session_lockfile.
 git commit -m "feat(session-leash): T01 lockfile schema + atomic I/O + PID liveness"
 ```
 
+- [x] **Task 1 complete**
+
 <!-- task-meta
 id: T01
 touches:
@@ -745,6 +747,8 @@ git add scripts/harness/session_start.py tests/harness/test_session_start.py
 git commit -m "feat(session-leash): T02 SessionStart hook with two-phase write"
 ```
 
+- [x] **Task 2 complete**
+
 <!-- task-meta
 id: T02
 touches:
@@ -1012,6 +1016,8 @@ Expected: PASS (7 tests).
 git add scripts/harness/session_gate.py tests/harness/test_session_gate.py
 git commit -m "feat(session-leash): T03 PreToolUse gate for Edit|Write|MultiEdit"
 ```
+
+- [x] **Task 3 complete**
 
 <!-- task-meta
 id: T03
@@ -1327,6 +1333,8 @@ git add scripts/harness/session_new.py skills/leash-session-new/SKILL.md tests/h
 git commit -m "feat(session-leash): T04 leash-session-new skill + worktree creator"
 ```
 
+- [x] **Task 4 complete**
+
 <!-- task-meta
 id: T04
 touches:
@@ -1637,6 +1645,8 @@ git add scripts/harness/session_end.py skills/leash-session-end/SKILL.md tests/h
 git commit -m "feat(session-leash): T05 leash-session-end skill + worktree teardown"
 ```
 
+- [x] **Task 5 complete**
+
 <!-- task-meta
 id: T05
 touches:
@@ -1764,6 +1774,8 @@ Expected: PASS (2 tests).
 git add scripts/harness/list_sessions.py tests/harness/test_list_sessions.py
 git commit -m "feat(session-leash): T06 list_sessions introspection CLI"
 ```
+
+- [x] **Task 6 complete**
 
 <!-- task-meta
 id: T06
@@ -2049,6 +2061,8 @@ git add scripts/harness/cycle_done.py tests/harness/test_cycle_done_session_swee
 git commit -m "feat(session-leash): T07 cycle_done conservative session-worktree sweep"
 ```
 
+- [x] **Task 7 complete**
+
 <!-- task-meta
 id: T07
 touches:
@@ -2222,6 +2236,8 @@ git add templates/settings.json.tmpl templates/CLAUDE.md.tmpl templates/AGENTS.m
 git commit -m "feat(session-leash): T08 wire hooks in settings.json.tmpl + mention in CLAUDE/AGENTS templates"
 ```
 
+- [x] **Task 8 complete**
+
 <!-- task-meta
 id: T08
 touches:
@@ -2352,6 +2368,8 @@ Expected: PASS.
 git add README.md tests/test_docs.py
 git commit -m "docs(session-leash): T09 README section + trust-model update"
 ```
+
+- [x] **Task 9 complete**
 
 <!-- task-meta
 id: T09
@@ -2586,6 +2604,8 @@ git add scripts/dogfood_session.py scripts/smoke_e2e.py tests/test_smoke.py
 git commit -m "feat(session-leash): T10 dogfood script + smoke_e2e step (load-bearing)"
 ```
 
+- [x] **Task 10 complete**
+
 <!-- task-meta
 id: T10
 touches:
@@ -2700,6 +2720,8 @@ Expected: PASS (3 tests).
 git add skills/bootstrap-dev-leash/SKILL.md tests/test_skill_bootstrap.py
 git commit -m "feat(session-leash): T11 bootstrap patches target .gitignore for lockfiles"
 ```
+
+- [x] **Task 11 complete**
 
 <!-- task-meta
 id: T11

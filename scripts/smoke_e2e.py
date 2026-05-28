@@ -141,6 +141,14 @@ review_rules: []
     assert good.returncode == 0, "gate should pass when clean"
 
 
+def _exercise_session_leash() -> None:
+    """Run the session-leash dogfood script as a self-contained step."""
+    rc = subprocess.call(
+        [sys.executable, str(PLUGIN_ROOT / "scripts" / "dogfood_session.py")],
+    )
+    assert rc == 0, f"dogfood_session.py exit {rc}"
+
+
 def _run(cmd: list[str], cwd: str | None = None) -> tuple[int, str]:
     """Run a command; return (returncode, combined stdout+stderr)."""
     proc = subprocess.run(
@@ -160,7 +168,7 @@ def main(argv: list[str]) -> int:
     def step(n: int, label: str, ok: bool, detail: str = "") -> None:
         nonlocal failed
         mark = "OK" if ok else "FAIL"
-        line = f"[{n}/8] {label:<41} {mark}"
+        line = f"[{n}/9] {label:<41} {mark}"
         if detail:
             line += f"  {detail}"
         print(line)
@@ -240,6 +248,13 @@ def main(argv: list[str]) -> int:
             step(8, "arch-leash: gate rejects violation, passes clean", True)
         except Exception as exc:  # noqa: BLE001
             step(8, "arch-leash: gate rejects violation, passes clean", False, str(exc))
+
+        # 9 — exercise the session leash on a throwaway repo
+        try:
+            _exercise_session_leash()
+            step(9, "session-leash: deny->worktree->allow path", True)
+        except Exception as exc:  # noqa: BLE001
+            step(9, "session-leash: deny->worktree->allow path", False, str(exc))
 
     finally:
         elapsed = time.time() - t0

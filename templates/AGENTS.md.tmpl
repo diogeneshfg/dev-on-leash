@@ -135,3 +135,10 @@ is regenerated from it. The `<!-- OPTIONAL:ARCHITECTURE -->` markers above
 and below this paragraph are kept on purpose: the compiler finds its
 territory by those markers, so do not delete them.
 <!-- /OPTIONAL:ARCHITECTURE -->
+
+### Concurrent sessions
+
+If two Claude Code sessions touch this repo at once, the second one is
+blocked from writing until it invokes `/leash-session-new`. That skill
+creates a sibling `git worktree` so each session has its own checkout.
+Close out with `/leash-session-end`.
