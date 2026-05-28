@@ -35,3 +35,11 @@ Features ship as numbered cycles with a written plan in `docs/plans/` before any
 **Cycle done = all of**: zero pending tasks in plan, integration suite green (0 failed), full test suite green, `migrate-smoke` green if migrations changed, pre-commit clean, manual smoke of the user-visible feature, branch merged to main.
 
 Use `scripts/harness/cycle_done.py --plan <file>` to close a cycle. Use `scripts/harness/validate_plan.py <file>` to validate a plan before starting it.
+
+## Concurrent sessions
+
+The harness installs a **session leash**. If you open a second Claude
+Code session on this repo, `SessionStart` will detect the concurrency
+and `PreToolUse` will deny `Edit`/`Write`/`MultiEdit` until you invoke
+`/leash-session-new` — which creates a sibling git worktree and
+unblocks writes. Run `/leash-session-end` when done.

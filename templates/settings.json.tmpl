@@ -10,8 +10,32 @@
       "Bash(git log*)",
       "Bash(git show*)",
       "Bash(git branch*)",
+      "Bash(git worktree*)",
       "Bash(pre-commit run*)",
       "Bash(python scripts/harness/*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python scripts/harness/session_start.py"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python scripts/harness/session_gate.py"
+          }
+        ]
+      }
     ]
   }
 }

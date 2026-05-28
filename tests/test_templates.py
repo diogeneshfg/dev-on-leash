@@ -27,3 +27,25 @@ def test_agents_template_has_architecture_block():
     body = text[open_idx:close_idx]
     assert "compose-architecture-leash" in body
     assert "## Architecture" in body
+
+
+def test_settings_template_has_session_leash_hooks():
+    from pathlib import Path
+    text = Path("templates/settings.json.tmpl").read_text(encoding="utf-8")
+    assert "SessionStart" in text
+    assert "PreToolUse" in text
+    assert "scripts/harness/session_start.py" in text
+    assert "scripts/harness/session_gate.py" in text
+    assert "Edit|Write|MultiEdit" in text
+
+
+def test_claude_md_template_mentions_session_leash():
+    from pathlib import Path
+    text = Path("templates/CLAUDE.md.tmpl").read_text(encoding="utf-8")
+    assert "session leash" in text.lower() or "/leash-session-new" in text
+
+
+def test_agents_md_template_mentions_concurrent_sessions():
+    from pathlib import Path
+    text = Path("templates/AGENTS.md.tmpl").read_text(encoding="utf-8")
+    assert "concurrent" in text.lower() or "/leash-session-new" in text
