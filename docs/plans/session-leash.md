@@ -2061,7 +2061,7 @@ git add scripts/harness/cycle_done.py tests/harness/test_cycle_done_session_swee
 git commit -m "feat(session-leash): T07 cycle_done conservative session-worktree sweep"
 ```
 
-- [ ] **Task 7 complete**
+- [x] **Task 7 complete**
 
 <!-- task-meta
 id: T07
