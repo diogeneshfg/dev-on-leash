@@ -70,10 +70,14 @@ def decide(
     if lf.state == sl.STATE_IN_WORKTREE:
         target = tool_input.get("file_path") or ""
         wt = lf.worktree_path or ""
-        if wt and target and Path(target).resolve().as_posix().startswith(
-            Path(wt).resolve().as_posix()
-        ):
-            return Decision(allow=True, reason="")
+        if wt and target:
+            try:
+                target_path = Path(target).resolve()
+                wt_resolved = Path(wt).resolve()
+                if target_path == wt_resolved or target_path.is_relative_to(wt_resolved):
+                    return Decision(allow=True, reason="")
+            except (OSError, ValueError):
+                pass
         return Decision(
             allow=False,
             reason=(

@@ -8,7 +8,6 @@ Called by the /leash-session-new skill. Reads this session's lockfile
 from __future__ import annotations
 
 import argparse
-import datetime as _dt
 import os
 import subprocess
 import sys
@@ -27,10 +26,6 @@ class SessionNewError(RuntimeError):
 class WorktreeInfo:
     worktree_path: Path
     worktree_branch: str
-
-
-def _now_iso() -> str:
-    return _dt.datetime.now(_dt.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def _short_id() -> str:

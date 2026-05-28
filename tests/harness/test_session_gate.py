@@ -97,3 +97,24 @@ def test_unknown_tool_name_allows(tmp_path: Path):
         tool_name="Bash", tool_input={"command": "ls"},
     )
     assert d.allow is True
+
+
+def test_in_worktree_denies_sibling_path_prefix_attack(tmp_path: Path):
+    """The worktree-boundary check must be path-component aware. A
+    sibling directory whose name STARTS with the worktree's name (e.g.
+    `repo--session-abcEVIL` vs `repo--session-abc`) must not be treated
+    as inside the worktree. Regression test for a startswith() bypass.
+    """
+    sessions_dir = tmp_path / ".harness" / "sessions"
+    wt = tmp_path / "session-abc"
+    wt.mkdir()
+    evil = tmp_path / "session-abcEVIL"
+    evil.mkdir()
+    _write_lf(sessions_dir, os.getpid(), sl.STATE_IN_WORKTREE,
+              str(tmp_path), worktree_path=str(wt))
+    d = decide(
+        sessions_dir=sessions_dir, self_pid=os.getpid(),
+        tool_name="Edit", tool_input={"file_path": str(evil / "bad.py")},
+    )
+    assert d.allow is False, "sibling with prefixed name must not be treated as inside worktree"
+    assert str(wt) in d.reason
