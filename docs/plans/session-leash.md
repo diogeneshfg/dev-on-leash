@@ -747,7 +747,7 @@ git add scripts/harness/session_start.py tests/harness/test_session_start.py
 git commit -m "feat(session-leash): T02 SessionStart hook with two-phase write"
 ```
 
-- [ ] **Task 2 complete**
+- [x] **Task 2 complete**
 
 <!-- task-meta
 id: T02
