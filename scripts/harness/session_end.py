@@ -39,6 +39,14 @@ def _branch_is_merged(repo: Path, branch: str) -> bool:
     return branch in merged
 
 
+def _branch_exists(repo: Path, branch: str) -> bool:
+    proc = subprocess.run(
+        ["git", "rev-parse", "--verify", f"refs/heads/{branch}"],
+        cwd=repo, capture_output=True, text=True,
+    )
+    return proc.returncode == 0
+
+
 def end_session(
     *,
     repo_root: Path,
@@ -61,6 +69,14 @@ def end_session(
             _git(["worktree", "prune"], cwd=repo_root)
         except SessionEndError:
             pass
+        if _branch_exists(repo_root, lf.worktree_branch):
+            if not keep_branch and not _branch_is_merged(repo_root, lf.worktree_branch):
+                raise SessionEndError(
+                    f"branch {lf.worktree_branch} is unmerged; "
+                    "merge it first or pass --keep-branch"
+                )
+            if not keep_branch:
+                _git(["branch", "-d", lf.worktree_branch], cwd=repo_root)
         lf_path.unlink(missing_ok=True)
         return
 
