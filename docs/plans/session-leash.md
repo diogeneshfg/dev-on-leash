@@ -1333,7 +1333,7 @@ git add scripts/harness/session_new.py skills/leash-session-new/SKILL.md tests/h
 git commit -m "feat(session-leash): T04 leash-session-new skill + worktree creator"
 ```
 
-- [ ] **Task 4 complete**
+- [x] **Task 4 complete**
 
 <!-- task-meta
 id: T04
