@@ -2369,7 +2369,7 @@ git add README.md tests/test_docs.py
 git commit -m "docs(session-leash): T09 README section + trust-model update"
 ```
 
-- [ ] **Task 9 complete**
+- [x] **Task 9 complete**
 
 <!-- task-meta
 id: T09
