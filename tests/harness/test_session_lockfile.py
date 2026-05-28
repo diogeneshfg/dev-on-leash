@@ -36,6 +36,7 @@ def test_clearly_dead_pid_is_not_alive():
     assert not is_pid_alive(proc.pid)
 
 
+@pytest.mark.skipif(os.name != "nt", reason="STILL_ACTIVE=259 collision is Win32-only")
 def test_dead_pid_with_exit_code_259_is_not_alive():
     """Win32 STILL_ACTIVE == 259 collision regression.
 
@@ -43,6 +44,9 @@ def test_dead_pid_with_exit_code_259_is_not_alive():
     naive `GetExitCodeProcess() == STILL_ACTIVE` check misclassifies
     such processes; we use `WaitForSingleObject(handle, 0)` instead,
     which distinguishes signaled (exited) from timeout (still running).
+
+    Skipped on POSIX: exit codes are 8-bit there (259 & 0xFF == 3), so
+    the collision is structurally impossible.
     """
     proc = subprocess.Popen([sys.executable, "-c", "import sys; sys.exit(259)"])
     proc.wait()
