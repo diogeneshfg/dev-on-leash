@@ -36,6 +36,20 @@ def test_clearly_dead_pid_is_not_alive():
     assert not is_pid_alive(proc.pid)
 
 
+def test_dead_pid_with_exit_code_259_is_not_alive():
+    """Win32 STILL_ACTIVE == 259 collision regression.
+
+    A child that exits with code 259 must NOT be reported as alive. The
+    naive `GetExitCodeProcess() == STILL_ACTIVE` check misclassifies
+    such processes; we use `WaitForSingleObject(handle, 0)` instead,
+    which distinguishes signaled (exited) from timeout (still running).
+    """
+    proc = subprocess.Popen([sys.executable, "-c", "import sys; sys.exit(259)"])
+    proc.wait()
+    assert proc.returncode == 259
+    assert not is_pid_alive(proc.pid)
+
+
 def test_round_trip(tmp_path: Path):
     lf = Lockfile(
         schema=1,
@@ -122,6 +136,25 @@ def test_resolve_state_higher_pid_takes_pending(tmp_path: Path):
     self_pid = 500
     state = resolve_state(self_pid=self_pid, live_peer_pids=[100, 200])
     assert state == STATE_PENDING_WORKTREE
+
+
+def test_gc_removes_stale_tmp_residue(tmp_path: Path):
+    """write_lockfile uses <path>.tmp + os.replace for atomicity. A
+    successful write leaves no .tmp; only a crashed write leaves one.
+    GC must collect those — otherwise stale .tmp files accumulate
+    forever (they don't match the *.json glob the rest of the code uses).
+    """
+    (tmp_path / "9999.json.tmp").write_text("orphan", encoding="utf-8")
+    # A live lockfile alongside should be untouched.
+    alive = Lockfile(
+        schema=1, pid=os.getpid(), started_at="x", session_id="a",
+        primary_cwd=str(tmp_path), state=STATE_PRIMARY,
+        worktree_path=None, worktree_branch=None,
+    )
+    write_lockfile(tmp_path / f"{alive.pid}.json", alive)
+    gc_dead_lockfiles(tmp_path)
+    assert not (tmp_path / "9999.json.tmp").exists(), "orphan .tmp must be GC'd"
+    assert (tmp_path / f"{alive.pid}.json").exists(), "live lockfile must survive"
 
 
 def test_corrupt_lockfile_is_treated_as_absent(tmp_path: Path):

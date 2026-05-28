@@ -1,9 +1,9 @@
 """PreToolUse hook: deny write tools while session lacks a worktree.
 
 Wired into .claude/settings.json against the matcher
-"Edit|Write|MultiEdit". `Bash` is intentionally NOT in the matcher —
-/leash-session-new uses Bash for `git worktree add`. Gating Bash here
-deadlocks the auto-resolution.
+"Edit|Write|MultiEdit|NotebookEdit". `Bash` is intentionally NOT in
+the matcher — /leash-session-new uses Bash for `git worktree add`.
+Gating Bash here deadlocks the auto-resolution.
 
 Hook protocol: read JSON from stdin {tool_name, tool_input, ...},
 print JSON {"decision": "allow"|"deny", "reason": str} on stdout.
@@ -19,7 +19,7 @@ from pathlib import Path
 
 from scripts.harness import session_lockfile as sl
 
-GATED_TOOLS = frozenset({"Edit", "Write", "MultiEdit"})
+GATED_TOOLS = frozenset({"Edit", "Write", "MultiEdit", "NotebookEdit"})
 
 
 @dataclass(frozen=True)
@@ -68,7 +68,9 @@ def decide(
             ),
         )
     if lf.state == sl.STATE_IN_WORKTREE:
-        target = tool_input.get("file_path") or ""
+        target = tool_input.get("file_path") or tool_input.get("notebook_path") or ""
+        if not isinstance(target, str):
+            target = ""
         wt = lf.worktree_path or ""
         if wt and target:
             try:

@@ -63,7 +63,12 @@ class Lockfile:
 def is_pid_alive(pid: int) -> bool:
     """Cross-platform PID liveness check.
 
-    Windows: OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION).
+    Windows: OpenProcess + WaitForSingleObject(handle, 0). We use
+    WaitForSingleObject rather than GetExitCodeProcess to avoid the
+    well-known STILL_ACTIVE (259) collision — a process that exits
+    with code 259 is indistinguishable from "still running" via
+    GetExitCodeProcess. WaitForSingleObject returns WAIT_TIMEOUT iff
+    the process is still running.
     POSIX: os.kill(pid, 0) with EPERM treated as alive (process exists,
     we just lack permission to signal it).
     """
@@ -71,19 +76,18 @@ def is_pid_alive(pid: int) -> bool:
         return False
     if os.name == "nt":
         import ctypes
+        SYNCHRONIZE = 0x00100000
         PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+        WAIT_TIMEOUT = 0x102
         kernel32 = ctypes.windll.kernel32
-        handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+        handle = kernel32.OpenProcess(
+            SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION, False, pid,
+        )
         if not handle:
             return False
-        # Check the process hasn't already exited (handle survives briefly).
-        STILL_ACTIVE = 259
-        exit_code = ctypes.c_ulong()
-        ok = kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code))
+        result = kernel32.WaitForSingleObject(handle, 0)
         kernel32.CloseHandle(handle)
-        if not ok:
-            return False
-        return exit_code.value == STILL_ACTIVE
+        return result == WAIT_TIMEOUT
     try:
         os.kill(pid, 0)
         return True
@@ -115,9 +119,21 @@ def _iter_lockfile_paths(sessions_dir: Path) -> Iterable[Path]:
 def gc_dead_lockfiles(sessions_dir: Path) -> int:
     """Delete lockfiles whose PID is not alive, or which are corrupt.
 
-    Returns count deleted.
+    Also collects stale `<pid>.json.tmp` residue from a crashed
+    atomic write — a successful write atomically renames the tmp away,
+    so any `.tmp` present is from a process that died mid-write and
+    will never finish.
+
+    Returns count deleted (lockfiles + tmp residue).
     """
     n = 0
+    if sessions_dir.exists():
+        for tmp in sessions_dir.glob("*.json.tmp"):
+            try:
+                tmp.unlink()
+                n += 1
+            except FileNotFoundError:
+                pass
     for path in _iter_lockfile_paths(sessions_dir):
         try:
             lf = read_lockfile(path)

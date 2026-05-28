@@ -36,7 +36,7 @@ def test_settings_template_has_session_leash_hooks():
     assert "PreToolUse" in text
     assert "scripts/harness/session_start.py" in text
     assert "scripts/harness/session_gate.py" in text
-    assert "Edit|Write|MultiEdit" in text
+    assert "Edit|Write|MultiEdit|NotebookEdit" in text
 
 
 def test_claude_md_template_mentions_session_leash():

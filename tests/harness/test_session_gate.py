@@ -99,6 +99,37 @@ def test_unknown_tool_name_allows(tmp_path: Path):
     assert d.allow is True
 
 
+def test_notebook_edit_is_gated_outside_worktree(tmp_path: Path):
+    """NotebookEdit modifies .ipynb files and must be gated like
+    Edit/Write/MultiEdit. Regression: matcher previously only included
+    Edit|Write|MultiEdit so a pending-worktree session could corrupt a
+    peer's notebooks. NotebookEdit's input uses `notebook_path`.
+    """
+    sessions_dir = tmp_path / ".harness" / "sessions"
+    _write_lf(sessions_dir, os.getpid(), sl.STATE_PENDING_WORKTREE, str(tmp_path))
+    d = decide(
+        sessions_dir=sessions_dir, self_pid=os.getpid(),
+        tool_name="NotebookEdit",
+        tool_input={"notebook_path": str(tmp_path / "n.ipynb")},
+    )
+    assert d.allow is False
+    assert "/leash-session-new" in d.reason
+
+
+def test_notebook_edit_allowed_inside_worktree(tmp_path: Path):
+    sessions_dir = tmp_path / ".harness" / "sessions"
+    wt = tmp_path / "wt"
+    wt.mkdir()
+    _write_lf(sessions_dir, os.getpid(), sl.STATE_IN_WORKTREE,
+              str(tmp_path), worktree_path=str(wt))
+    d = decide(
+        sessions_dir=sessions_dir, self_pid=os.getpid(),
+        tool_name="NotebookEdit",
+        tool_input={"notebook_path": str(wt / "n.ipynb")},
+    )
+    assert d.allow is True
+
+
 def test_in_worktree_denies_sibling_path_prefix_attack(tmp_path: Path):
     """The worktree-boundary check must be path-component aware. A
     sibling directory whose name STARTS with the worktree's name (e.g.
