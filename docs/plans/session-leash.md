@@ -2236,7 +2236,7 @@ git add templates/settings.json.tmpl templates/CLAUDE.md.tmpl templates/AGENTS.m
 git commit -m "feat(session-leash): T08 wire hooks in settings.json.tmpl + mention in CLAUDE/AGENTS templates"
 ```
 
-- [ ] **Task 8 complete**
+- [x] **Task 8 complete**
 
 <!-- task-meta
 id: T08
