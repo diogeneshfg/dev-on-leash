@@ -1645,7 +1645,7 @@ git add scripts/harness/session_end.py skills/leash-session-end/SKILL.md tests/h
 git commit -m "feat(session-leash): T05 leash-session-end skill + worktree teardown"
 ```
 
-- [ ] **Task 5 complete**
+- [x] **Task 5 complete**
 
 <!-- task-meta
 id: T05
