@@ -1775,7 +1775,7 @@ git add scripts/harness/list_sessions.py tests/harness/test_list_sessions.py
 git commit -m "feat(session-leash): T06 list_sessions introspection CLI"
 ```
 
-- [ ] **Task 6 complete**
+- [x] **Task 6 complete**
 
 <!-- task-meta
 id: T06
