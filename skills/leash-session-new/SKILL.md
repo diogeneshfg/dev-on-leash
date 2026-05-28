@@ -19,7 +19,7 @@ it will refuse with a clear message.
 1. Run the backing script:
 
    ```bash
-   python scripts/harness/session_new.py
+   python -m scripts.harness.session_new
    ```
 
 2. The script:

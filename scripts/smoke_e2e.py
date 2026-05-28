@@ -21,6 +21,7 @@ Usage:
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -149,6 +150,44 @@ def _exercise_session_leash() -> None:
     assert rc == 0, f"dogfood_session.py exit {rc}"
 
 
+def _exercise_session_hooks_subprocess(repo: Path) -> None:
+    """Drive the hook commands from settings.json.tmpl as actual subprocesses.
+
+    Step 9 (dogfood_session.py) exercises the *in-process* API, so it can't
+    catch invocation-surface bugs — e.g., direct path invocation breaking
+    absolute imports. This step takes each `"command"` string from the
+    template, runs it as Claude Code would (subprocess + stdin JSON for the
+    PreToolUse gate), against the throwaway repo where init.sh just
+    installed scripts/harness/ + scripts/__init__.py.
+    """
+    text = (PLUGIN_ROOT / "templates" / "settings.json.tmpl").read_text(
+        encoding="utf-8"
+    )
+    commands = re.findall(r'"command":\s*"([^"]+)"', text)
+    assert commands, "no hook commands in template"
+    env = {**os.environ, "CLAUDE_PROJECT_DIR": str(repo)}
+    for cmd in commands:
+        argv = cmd.split()
+        assert argv[0] == "python", f"unexpected interpreter in hook: {cmd}"
+        argv[0] = sys.executable
+        proc = subprocess.run(
+            argv,
+            cwd=repo,
+            env=env,
+            input="{}",
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert "ModuleNotFoundError" not in (proc.stderr or ""), (
+            f"hook {cmd!r} crashed on import:\n{proc.stderr}"
+        )
+        assert proc.returncode == 0, (
+            f"hook {cmd!r} returned {proc.returncode}\n"
+            f"stderr: {proc.stderr}\nstdout: {proc.stdout}"
+        )
+
+
 def _run(cmd: list[str], cwd: str | None = None) -> tuple[int, str]:
     """Run a command; return (returncode, combined stdout+stderr)."""
     proc = subprocess.run(
@@ -168,7 +207,7 @@ def main(argv: list[str]) -> int:
     def step(n: int, label: str, ok: bool, detail: str = "") -> None:
         nonlocal failed
         mark = "OK" if ok else "FAIL"
-        line = f"[{n}/9] {label:<41} {mark}"
+        line = f"[{n}/10] {label:<41} {mark}"
         if detail:
             line += f"  {detail}"
         print(line)
@@ -255,6 +294,13 @@ def main(argv: list[str]) -> int:
             step(9, "session-leash: deny->worktree->allow path", True)
         except Exception as exc:  # noqa: BLE001
             step(9, "session-leash: deny->worktree->allow path", False, str(exc))
+
+        # 10 — drive the template's hook commands as actual subprocesses
+        try:
+            _exercise_session_hooks_subprocess(repo)
+            step(10, "session-leash hooks: subprocess invocation", True)
+        except Exception as exc:  # noqa: BLE001
+            step(10, "session-leash hooks: subprocess invocation", False, str(exc))
 
     finally:
         elapsed = time.time() - t0

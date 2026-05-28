@@ -17,7 +17,7 @@ harness-hardening effort (see `docs/plans/harness-hardening.md`).
 
 The session-leash spec (`docs/superpowers/specs/2026-05-28-session-leash-design.md`
 Section 6) calls for a `bypass: true` lockfile field, settable by passing
-`--force` to `python scripts/harness/session_start.py`, with an audit line
+`--force` to `python -m scripts.harness.session_start`, with an audit line
 appended to `.harness/exceptions.log` — mirroring the `cycle_done --force`
 escape hatch.
 

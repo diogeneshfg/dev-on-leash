@@ -20,7 +20,7 @@ Code session.
 2. Run:
 
    ```bash
-   python scripts/harness/session_end.py
+   python -m scripts.harness.session_end
    ```
 
 3. The script:

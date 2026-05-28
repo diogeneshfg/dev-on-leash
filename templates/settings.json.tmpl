@@ -12,7 +12,7 @@
       "Bash(git branch*)",
       "Bash(git worktree*)",
       "Bash(pre-commit run*)",
-      "Bash(python scripts/harness/*)"
+      "Bash(python -m scripts.harness.*)"
     ]
   },
   "hooks": {
@@ -21,7 +21,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python scripts/harness/session_start.py"
+            "command": "python -m scripts.harness.session_start"
           }
         ]
       }
@@ -32,7 +32,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python scripts/harness/session_gate.py"
+            "command": "python -m scripts.harness.session_gate"
           }
         ]
       }
