@@ -1017,7 +1017,7 @@ git add scripts/harness/session_gate.py tests/harness/test_session_gate.py
 git commit -m "feat(session-leash): T03 PreToolUse gate for Edit|Write|MultiEdit"
 ```
 
-- [ ] **Task 3 complete**
+- [x] **Task 3 complete**
 
 <!-- task-meta
 id: T03
