@@ -2721,7 +2721,7 @@ git add skills/bootstrap-dev-leash/SKILL.md tests/test_skill_bootstrap.py
 git commit -m "feat(session-leash): T11 bootstrap patches target .gitignore for lockfiles"
 ```
 
-- [ ] **Task 11 complete**
+- [x] **Task 11 complete**
 
 <!-- task-meta
 id: T11
