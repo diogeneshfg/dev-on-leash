@@ -218,7 +218,7 @@ def advise_merged_worktrees(*, repo_root: Path) -> list[str]:
             continue
         reminders.append(
             f"reminder: branch {branch} is merged — run "
-            f"`git worktree remove {wt_path}` to clean up"
+            f'`git worktree remove "{wt_path}"` to clean up'
         )
     return reminders
 

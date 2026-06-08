@@ -33,8 +33,22 @@ def test_advises_merged_feature_worktree_without_removing(tmp_path: Path):
     reminders = advise_merged_worktrees(repo_root=repo)
     assert any("feat/foo" in r for r in reminders), reminders
     assert any(str(wt) in r for r in reminders), reminders
+    # The emitted command quotes the path so it copy-pastes verbatim.
+    assert any(f'"{wt}"' in r for r in reminders), reminders
     # Advisory only: the worktree is NOT removed.
     assert wt.exists()
+
+
+def test_advisory_path_is_quoted_for_spaces(tmp_path: Path):
+    # Paths with spaces (this repo lives under ".../Python Projects/...") must
+    # be double-quoted so the suggested `git worktree remove` runs verbatim.
+    repo = tmp_path / "p"
+    _init_git_repo(repo)
+    wt = _add_worktree(repo, ".worktrees/a b", "feat/space-test")
+    reminders = advise_merged_worktrees(repo_root=repo)
+    matching = [r for r in reminders if "feat/space-test" in r]
+    assert matching, reminders
+    assert all(f'remove "{wt}"' in r for r in matching), matching
 
 
 def test_no_advice_for_unmerged_feature_worktree(tmp_path: Path):
