@@ -202,18 +202,28 @@ def advise_merged_worktrees(*, repo_root: Path) -> list[str]:
     Unlike `session/*` worktrees (auto-removed by sweep_session_worktrees),
     proactive worktrees created by `leash-start-work` are developer-owned
     feature branches that may have an open PR. We never remove them — we
-    only return a reminder string per merged one. Branches without a `/`
-    (e.g. the primary `main`/`master` checkout) and `session/*` branches
-    are skipped.
+    only return a reminder string per merged one.
+
+    Only worktrees physically located under `<repo_root>/.worktrees/` are
+    considered — that is the proactive layout this feature defines. The
+    location filter naturally excludes the primary checkout (which `git
+    branch --merged` would otherwise list as "merged into itself" whenever
+    HEAD is on a `<type>/<slug>` branch) and the sibling session worktrees.
+    `session/*` branches are additionally skipped as defense in depth.
     """
     reminders: list[str] = []
+    worktrees_root = (repo_root / ".worktrees").resolve()
     merged_raw = _git_out(["branch", "--merged"], repo_root)
     merged = {b.strip().lstrip("*+ ").strip() for b in merged_raw.splitlines()}
     for wt_path, branch in _worktree_branches(repo_root, prefix=None):
         if branch.startswith("session/"):
             continue  # auto-swept by sweep_session_worktrees
-        if "/" not in branch:
-            continue  # main/master and other non-namespaced branches
+        try:
+            under = wt_path.resolve().is_relative_to(worktrees_root)
+        except (OSError, ValueError):
+            under = False
+        if not under:
+            continue  # only proactive .worktrees/<slug> worktrees
         if branch not in merged:
             continue
         reminders.append(

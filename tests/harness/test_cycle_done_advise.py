@@ -71,6 +71,18 @@ def test_no_advice_for_main_checkout(tmp_path: Path):
     assert reminders == [], reminders
 
 
+def test_no_advice_for_primary_checkout_on_feature_branch(tmp_path: Path):
+    # Dogfood regression: from the PRIMARY checkout on a feature branch, HEAD's
+    # branch has a "/" and `git branch --merged` lists it (merged into itself).
+    # With no .worktrees/ worktree present, the function must NOT advise
+    # removing the primary checkout you are standing in.
+    repo = tmp_path / "p"
+    _init_git_repo(repo)
+    subprocess.check_call(["git", "checkout", "-q", "-b", "feat/current"], cwd=repo)
+    reminders = advise_merged_worktrees(repo_root=repo)
+    assert reminders == [], reminders
+
+
 def test_ignores_session_worktrees(tmp_path: Path):
     # session/* worktrees are auto-swept elsewhere; advisory must skip them.
     repo = tmp_path / "p"
