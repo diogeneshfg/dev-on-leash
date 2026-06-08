@@ -45,3 +45,11 @@ def test_readme_trust_model_names_session_leash():
     text = Path("README.md").read_text(encoding="utf-8")
     trust_block = text.split("## Trust model", 1)[1].split("##", 1)[0]
     assert "session" in trust_block.lower()
+
+
+def test_readme_documents_worktree_workflow():
+    import pathlib
+    root = pathlib.Path(__file__).resolve().parents[1]
+    text = (root / "README.md").read_text(encoding="utf-8")
+    assert "leash-start-work" in text
+    assert ".worktrees/" in text

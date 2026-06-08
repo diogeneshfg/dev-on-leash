@@ -107,6 +107,24 @@ which plants a peer lockfile, runs the hook, asserts the gate denies
 an `Edit`, drives the resolution path, and asserts the gate unblocks
 once the worktree is in place.
 
+## Parallel work with worktrees (opt-in)
+
+Branch discipline is mandatory — every change on a new `<type>/<slug>` branch
+off `main`. Worktrees make running several of those branches at once
+comfortable, without the stash-dance.
+
+- **Bootstrap** offers to standardize a `.worktrees/` layout and adds
+  `.worktrees/` to `.gitignore` under the `# dev-on-leash` heading.
+- **`/leash-start-work`** starts a change in its own worktree:
+  `git worktree add .worktrees/<slug> -b <type>/<slug> main`. It delegates the
+  mechanism to `EnterWorktree` / `superpowers:using-git-worktrees` when present.
+- **`cycle_done.py`** prints an advisory reminder to `git worktree remove`
+  once a `<type>/<slug>` branch is merged (it never removes feature worktrees
+  for you).
+
+This is distinct from the **session leash**, which reactively creates a sibling
+worktree only when two Claude Code sessions collide on the same repo.
+
 ## Trust model
 
 Be precise about what the harness enforces and what it only assists:
