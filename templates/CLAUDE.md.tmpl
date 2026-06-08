@@ -36,6 +36,14 @@ Features ship as numbered cycles with a written plan in `docs/plans/` before any
 
 Use `scripts/harness/cycle_done.py --plan <file>` to close a cycle. Use `scripts/harness/validate_plan.py <file>` to validate a plan before starting it.
 
+## Parallel work (worktrees)
+
+To start a change in its own working directory (parallel branches without the
+stash-dance), invoke `/leash-start-work`. It creates `.worktrees/<slug>` on a
+`<type>/<slug>` branch off `main` — the physical form of "branch first, edit
+after". Opt-in; it never weakens branch discipline. Remove the worktree after
+merge with `git worktree remove .worktrees/<slug>`.
+
 ## Concurrent sessions
 
 The harness installs a **session leash**. If you open a second Claude

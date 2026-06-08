@@ -93,3 +93,16 @@ def test_agents_md_template_mentions_concurrent_sessions():
     from pathlib import Path
     text = Path("templates/AGENTS.md.tmpl").read_text(encoding="utf-8")
     assert "concurrent" in text.lower() or "/leash-session-new" in text
+
+
+def test_agents_template_documents_worktree_start_path():
+    text = (ROOT / "templates" / "AGENTS.md.tmpl").read_text(encoding="utf-8")
+    assert ".worktrees/" in text
+    assert "leash-start-work" in text
+    # The proactive path is distinguished from the reactive session leash.
+    assert "<type>/<slug>" in text
+
+
+def test_claude_template_mentions_start_work():
+    text = (ROOT / "templates" / "CLAUDE.md.tmpl").read_text(encoding="utf-8")
+    assert "leash-start-work" in text
