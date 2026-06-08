@@ -48,6 +48,7 @@ Collect:
 | 9 | Domain-rules concern? (multi-tenancy, per-user scoping, etc.) | `AskUserQuestion` (yes / no) | keep or drop `OPTIONAL:DOMAIN_RULES` |
 | 10 | Design-system / UI concern? | `AskUserQuestion` (yes / no) | keep or drop `OPTIONAL:UI_RULES` |
 | 11 | Coverage targets | free-text | `{{COVERAGE_TARGETS}}` |
+| 12 | Parallel-work worktree layout? | `AskUserQuestion` (yes / no) | keep or drop the `.worktrees/` gitignore patch (Step 3c) |
 
 Notes on specific items:
 
@@ -55,6 +56,12 @@ Notes on specific items:
 - **Branch flow (item 8):** record the answer for context, but the fixed AGENTS.md branch-discipline section stands as written regardless. "Direct-to-main" does NOT remove the rule that implementation work happens on a branch off `main`; it only describes the team's PR habit. If the user picks direct-to-main, confirm they understand the harness still expects feature branches for any source/test/config change.
 - **Domain rules (item 9):** if yes, ask a follow-up free-text question for the actual rule text → `{{DOMAIN_RULES}}`. If no, drop the optional block entirely.
 - **UI rules (item 10):** if yes, ask a follow-up free-text question for the actual rule text → `{{UI_RULES}}`. If no, drop the optional block entirely.
+- **Worktree layout (item 12):** if yes, Step 3c also adds `.worktrees/` to
+  `.gitignore`. This standardizes the proactive parallel-work layout used by
+  the `leash-start-work` skill. If no, make no `.worktrees/` change — the skill
+  still works but will warn the directory is not ignored. This is opt-in and
+  never weakens branch discipline; it only makes N mandatory branches livable
+  at once.
 
 ## Step 3 — Render the project-specific files
 
@@ -141,6 +148,18 @@ heading that you also add when missing — so the patched lines are
 discoverable later. Do NOT duplicate a line that is already present
 (an exact match anywhere in the file counts as present).
 
+If the user opted in to the worktree layout (interview item 12), also ensure
+`.worktrees/` is present, under the same `# dev-on-leash` heading:
+
+```
+.worktrees/
+```
+
+This is the proactive parallel-work directory created by `leash-start-work`;
+ignoring it keeps worktree checkouts out of commits. Idempotent — an exact
+match anywhere in the file counts as present; never duplicate. If the user
+declined item 12, make no `.worktrees/` change.
+
 ## Step 4 — Copy the project-agnostic layer
 
 Invoke the plugin's init script to drop the agnostic layer into the target project. The script **requires** the target repo path as its first argument — omitting it causes the script to exit 1 with an error. Since the skill runs from the target project root, pass `.` as the target path. Use the script matching the OS:
@@ -178,4 +197,6 @@ Tell the user concisely:
 - That `.harness/gates` was written from the verification commands — editing it tunes what `cycle_done` checks before closing a cycle.
 - Whether the pre-commit hook was activated (`git config core.hooksPath`), and
   that the CI snippet in `templates/ci-snippet.md` enforces the same check on push.
+- Whether the `.worktrees/` parallel-work layout was standardized (interview
+  item 12) — if so, `.worktrees/` was added to `.gitignore`.
 - **Next step:** write a plan into `docs/plans/` (by hand from `docs/plan-template.md`, or with `superpowers:writing-plans` if those skills are installed), then execute it task-by-task with the `execute-plan-task` skill. Augment each task you want machine-verified with a `task-meta` block — see `docs/task-schema.md`.

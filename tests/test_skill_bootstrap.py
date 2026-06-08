@@ -25,3 +25,18 @@ def test_skill_explains_why_sessions_are_ignored():
     # someone reads the skill out of context.
     lower = text.lower()
     assert "lockfile" in lower or "session" in lower
+
+
+def test_skill_documents_worktrees_optin():
+    text = SKILL_PATH.read_text(encoding="utf-8")
+    # The skill must offer the opt-in .worktrees/ layout and, when accepted,
+    # patch .gitignore under the existing # dev-on-leash heading.
+    assert ".worktrees/" in text
+    assert "# dev-on-leash" in text
+
+
+def test_skill_worktrees_optin_is_conditional():
+    text = SKILL_PATH.read_text(encoding="utf-8").lower()
+    # It is opt-in: the skill must frame it as a yes/no choice, not an
+    # unconditional patch.
+    assert "opt-in" in text or "if the user answered" in text or "if yes" in text
