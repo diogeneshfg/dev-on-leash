@@ -11,6 +11,7 @@ htmlcov/
 # Harness runtime
 .harness/exceptions.log
 .harness/sessions/
+.worktrees/
 
 # OS / editor
 .DS_Store
