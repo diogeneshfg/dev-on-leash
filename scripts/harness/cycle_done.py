@@ -107,10 +107,14 @@ def _git_out(args: list[str], cwd: Path) -> str:
     return proc.stdout if proc.returncode == 0 else ""
 
 
-def _worktree_branches(repo: Path) -> list[tuple[Path, str]]:
+def _worktree_branches(
+    repo: Path, *, prefix: str | None = "session/"
+) -> list[tuple[Path, str]]:
     """Parse `git worktree list --porcelain` into (path, branch) pairs.
 
-    Returns only worktrees whose branch starts with `session/`.
+    With `prefix` set (default `"session/"`), returns only worktrees whose
+    branch starts with it. With `prefix=None`, returns every branched
+    worktree.
     """
     out = _git_out(["worktree", "list", "--porcelain"], repo)
     results: list[tuple[Path, str]] = []
@@ -120,7 +124,7 @@ def _worktree_branches(repo: Path) -> list[tuple[Path, str]]:
             path = Path(line[len("worktree "):])
         elif line.startswith("branch refs/heads/") and path is not None:
             branch = line[len("branch refs/heads/"):]
-            if branch.startswith("session/"):
+            if prefix is None or branch.startswith(prefix):
                 results.append((path, branch))
             path = None
         elif line == "":
@@ -192,6 +196,33 @@ def sweep_session_worktrees(*, repo_root: Path) -> list[str]:
     return removed
 
 
+def advise_merged_worktrees(*, repo_root: Path) -> list[str]:
+    """Advisory reminders for merged proactive `<type>/<slug>` worktrees.
+
+    Unlike `session/*` worktrees (auto-removed by sweep_session_worktrees),
+    proactive worktrees created by `leash-start-work` are developer-owned
+    feature branches that may have an open PR. We never remove them — we
+    only return a reminder string per merged one. Branches without a `/`
+    (e.g. the primary `main`/`master` checkout) and `session/*` branches
+    are skipped.
+    """
+    reminders: list[str] = []
+    merged_raw = _git_out(["branch", "--merged"], repo_root)
+    merged = {b.strip().lstrip("*+ ").strip() for b in merged_raw.splitlines()}
+    for wt_path, branch in _worktree_branches(repo_root, prefix=None):
+        if branch.startswith("session/"):
+            continue  # auto-swept by sweep_session_worktrees
+        if "/" not in branch:
+            continue  # main/master and other non-namespaced branches
+        if branch not in merged:
+            continue
+        reminders.append(
+            f"reminder: branch {branch} is merged — run "
+            f"`git worktree remove {wt_path}` to clean up"
+        )
+    return reminders
+
+
 def main(argv: list[str]) -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--plan", type=Path, required=True)
@@ -223,6 +254,11 @@ def main(argv: list[str]) -> int:
                 print(f"sweep: removed {len(swept)} session worktree(s)", file=sys.stderr)
         except Exception as exc:  # noqa: BLE001
             print(f"sweep: skipped ({exc})", file=sys.stderr)
+        try:
+            for msg in advise_merged_worktrees(repo_root=REPO_ROOT):
+                print(msg, file=sys.stderr)
+        except Exception as exc:  # noqa: BLE001
+            print(f"advise: skipped ({exc})", file=sys.stderr)
         return 0
 
     if not args.force:
