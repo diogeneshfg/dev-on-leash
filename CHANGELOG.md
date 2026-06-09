@@ -6,6 +6,21 @@ are appended automatically by `scripts/harness/cycle_done.py` when a cycle
 closes green; edit them by hand to add detail.
 
 ## [Unreleased]
+### 2026-06-08 — worktree-aware-discipline
+- Make git worktrees a first-class, opt-in part of the branch-discipline
+  workflow. `cycle_done` now prints an advisory reminder to `git worktree
+  remove` for merged proactive worktrees under `.worktrees/` (advisory only —
+  never auto-removes, since feature branches may have an open PR; scoped to
+  `.worktrees/` so the primary checkout is never flagged). Bootstrap gains an
+  opt-in interview item that adds `.worktrees/` to the target `.gitignore`
+  under the `# dev-on-leash` heading. New voluntary `/leash-start-work` skill
+  creates `.worktrees/<slug>` on a `<type>/<slug>` branch off `main`,
+  delegating the worktree mechanism to `EnterWorktree` /
+  `superpowers:using-git-worktrees` with a documented `git worktree add`
+  fallback. `AGENTS.md`/`CLAUDE.md` templates and the README document the
+  proactive path, distinct from the reactive session leash. Dogfooded on this
+  repo (`.worktrees/` ignored; advisory verified live).
+
 ### 2026-05-28 — session-leash
 - Per-session git worktree guard-rail against concurrent Claude Code sessions
   clobbering each other's WIP. Detection via `.harness/sessions/<pid>.json`

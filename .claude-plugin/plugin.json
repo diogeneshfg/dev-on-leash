@@ -1,6 +1,6 @@
 {
   "name": "dev-on-leash",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A verify-gated task harness for AI-assisted development: Markdown plans where every verify-gated task is independently re-verifiable, with a parallel scheduler, review agents, and a bootstrap skill.",
   "author": { "name": "diogeneshfg" },
   "homepage": "https://github.com/diogeneshfg/dev-on-leash",
