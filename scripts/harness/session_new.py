@@ -2,8 +2,8 @@
 
 Called by the /leash-session-new skill. Reads this session's lockfile
 (by os.getppid()), creates `../<repo>--session-<id>/` on a fresh
-`session/<id>` branch from HEAD, and flips the lockfile to
-`in-worktree`. Idempotent.
+`session/<id>` branch from the trunk (main/master, else HEAD), and flips
+the lockfile to `in-worktree`. Idempotent.
 """
 from __future__ import annotations
 
@@ -44,6 +44,29 @@ def _git(args: list[str], cwd: Path) -> str:
     return proc.stdout
 
 
+def _branch_exists(repo_root: Path, branch: str) -> bool:
+    proc = subprocess.run(
+        ["git", "rev-parse", "--verify", "--quiet", f"refs/heads/{branch}"],
+        cwd=repo_root, capture_output=True, text=True,
+    )
+    return proc.returncode == 0
+
+
+def resolve_base(repo_root: Path) -> str:
+    """Pick the base ref for a new session worktree.
+
+    A concurrent session does *distinct* work, so it must branch from the
+    trunk (main/master) — not the primary checkout's current HEAD, which
+    would graft the primary branch's commits onto session/<id> and strand
+    it if that branch is later rebased or abandoned. When neither trunk
+    branch exists, fall back to HEAD so the escape hatch never blocks.
+    """
+    for trunk in ("main", "master"):
+        if _branch_exists(repo_root, trunk):
+            return trunk
+    return "HEAD"
+
+
 def create_worktree(*, repo_root: Path, self_pid: int) -> WorktreeInfo:
     sessions_dir = repo_root / ".harness" / "sessions"
     lf_path = sessions_dir / f"{self_pid}.json"
@@ -73,8 +96,9 @@ def create_worktree(*, repo_root: Path, self_pid: int) -> WorktreeInfo:
             "Pick a different id or remove the stale directory."
         )
 
+    base = resolve_base(repo_root)
     _git(
-        ["worktree", "add", str(worktree_path), "-b", branch, "HEAD"],
+        ["worktree", "add", str(worktree_path), "-b", branch, base],
         cwd=repo_root,
     )
 
