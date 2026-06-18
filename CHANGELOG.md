@@ -15,6 +15,10 @@ versioned `## [X.Y.Z] — <date>` heading (see `docs/RELEASING.md`), so
   `docs/RELEASING.md` now documents cutting the heading at release time.
 - `docs/RELEASING.md`: document the Windows `git worktree remove` `Permission
   denied` failure and the `git worktree prune` + `rm -rf` fallback.
+- `docs/RELEASING.md`: add the missing tag-and-publish step (`git tag -a` +
+  `git push origin v<version>` + `gh release create`). The file version bump
+  alone never updated GitHub's Releases/Tags view, which is why 0.4.0 shipped
+  in `pyproject.toml` but GitHub still showed v0.3.0 as latest.
 
 ## [0.4.0] — 2026-06-17
 ### 2026-06-17 — session-new-base-main
