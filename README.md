@@ -166,3 +166,9 @@ python scripts/smoke_e2e.py
 
 Builds a throwaway repo and drives the whole loop end to end in ~5s. Runs in CI
 on every push.
+
+## Releasing
+
+Cutting a release — lockstep version bump (`pyproject.toml` +
+`.claude-plugin/plugin.json`), the CHANGELOG convention, and the merge +
+cleanup flow — is documented in [docs/RELEASING.md](docs/RELEASING.md).
