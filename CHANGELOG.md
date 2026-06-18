@@ -13,6 +13,8 @@ versioned `## [X.Y.Z] — <date>` heading (see `docs/RELEASING.md`), so
   (0.3.0, 0.4.0) instead of letting them accumulate under `[Unreleased]`, so
   the CHANGELOG answers "what shipped in version X?" without `git log`.
   `docs/RELEASING.md` now documents cutting the heading at release time.
+- `docs/RELEASING.md`: document the Windows `git worktree remove` `Permission
+  denied` failure and the `git worktree prune` + `rm -rf` fallback.
 
 ## [0.4.0] — 2026-06-17
 ### 2026-06-17 — session-new-base-main

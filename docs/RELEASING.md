@@ -114,6 +114,19 @@ The flow used for every branch, feature or release:
    git worktree remove .worktrees/<slug>
    ```
 
+   **On Windows** this can fail with `Permission denied` when something still
+   holds a handle inside the worktree (a `.pytest_cache`, an editor, an
+   indexer). Git often still de-registers the worktree but leaves the physical
+   directory behind. If so, finish the cleanup by hand:
+
+   ```
+   git worktree prune                      # drop the stale registration
+   rm -rf .worktrees/<slug>                # remove the leftover directory
+   ```
+
+   `.worktrees/` is gitignored, so a leftover directory is harmless — but
+   prune + remove keeps the tree tidy.
+
 5. **Delete the merged branch** (and any other inactive merged branches):
 
    ```
