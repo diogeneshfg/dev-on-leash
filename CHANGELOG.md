@@ -15,6 +15,9 @@ closes green; edit them by hand to add detail.
   stranding it if that branch was later rebased or abandoned. New
   `tests/test_session_new.py` covers main / master / no-trunk bases (the
   module had no test before).
+- Document the release process in `docs/RELEASING.md`: lockstep version bump
+  (`pyproject.toml` + `.claude-plugin/plugin.json`), CHANGELOG convention, and
+  the merge + cleanup flow. Bump version `0.3.0 → 0.4.0`.
 
 ### 2026-06-08 — worktree-aware-discipline
 - Make git worktrees a first-class, opt-in part of the branch-discipline
