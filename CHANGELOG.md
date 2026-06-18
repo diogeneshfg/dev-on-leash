@@ -1,11 +1,20 @@
 # Changelog
 
 All notable changes to dev-on-leash are recorded here. The format follows
-[Keep a Changelog](https://keepachangelog.com/). Entries under `[Unreleased]`
-are appended automatically by `scripts/harness/cycle_done.py` when a cycle
-closes green; edit them by hand to add detail.
+[Keep a Changelog](https://keepachangelog.com/). `scripts/harness/cycle_done.py`
+appends entries under `[Unreleased]` when a cycle closes green; edit them by
+hand to add detail. At release time the `[Unreleased]` block is cut into a
+versioned `## [X.Y.Z] — <date>` heading (see `docs/RELEASING.md`), so
+`[Unreleased]` only ever holds work that has not shipped in a release.
 
 ## [Unreleased]
+### 2026-06-17 — changelog-versioned-headings
+- Recut already-released entries into versioned `## [X.Y.Z] — <date>` headings
+  (0.3.0, 0.4.0) instead of letting them accumulate under `[Unreleased]`, so
+  the CHANGELOG answers "what shipped in version X?" without `git log`.
+  `docs/RELEASING.md` now documents cutting the heading at release time.
+
+## [0.4.0] — 2026-06-17
 ### 2026-06-17 — session-new-base-main
 - `/leash-session-new` now cuts the `session/<id>` worktree branch from the
   trunk (`main`/`master`) instead of the primary checkout's `HEAD`, falling
@@ -17,8 +26,9 @@ closes green; edit them by hand to add detail.
   module had no test before).
 - Document the release process in `docs/RELEASING.md`: lockstep version bump
   (`pyproject.toml` + `.claude-plugin/plugin.json`), CHANGELOG convention, and
-  the merge + cleanup flow. Bump version `0.3.0 → 0.4.0`.
+  the merge + cleanup flow.
 
+## [0.3.0] — 2026-06-09
 ### 2026-06-08 — worktree-aware-discipline
 - Make git worktrees a first-class, opt-in part of the branch-discipline
   workflow. `cycle_done` now prints an advisory reminder to `git worktree
