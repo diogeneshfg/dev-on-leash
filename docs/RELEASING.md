@@ -88,6 +88,26 @@ under the version heading.
 
 7. **Merge, push, clean up** — the same finish flow as a feature (below).
 
+8. **Tag and publish the release.** The version bump in the files is *not*
+   what GitHub's Releases/Tags view reads — that is driven by git tags. After
+   the release merge lands on `main`, create an annotated tag on the **release
+   merge commit** and push it, then cut the GitHub Release:
+
+   ```
+   git tag -a v<version> <release-merge-sha> \
+     -m "dev-on-leash v<version> — <feature summary>"
+   git push origin v<version>
+   gh release create v<version> \
+     --title "v<version> — <feature summary>" \
+     --notes "<the [<version>] CHANGELOG section>"
+   ```
+
+   Tag the **release merge commit**, not whatever `HEAD` happens to be — later
+   `[Unreleased]` work must not be folded into the tag. Confirm with
+   `gh release list` that the new version shows as `Latest`. Skipping this step
+   is why a version can look "shipped" in `pyproject.toml` yet still show the
+   previous release as latest on GitHub.
+
 ## Finishing a feature branch (merge + cleanup)
 
 The flow used for every branch, feature or release:
