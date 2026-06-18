@@ -25,7 +25,7 @@ it will refuse with a clear message.
 2. The script:
    - reads this session's lockfile at `.harness/sessions/<pid>.json`
    - creates a sibling worktree `../<repo>--session-<id>/` on a new
-     `session/<id>` branch from `HEAD`
+     `session/<id>` branch from the trunk (`main`/`master`, else `HEAD`)
    - flips the lockfile state to `in-worktree`
 3. The script prints the worktree path. From that point on, **use
    absolute paths under that directory** for every `Edit`, `Write`,
@@ -36,7 +36,10 @@ it will refuse with a clear message.
 ## Constraints
 
 - The skill does NOT copy uncommitted WIP from the primary checkout.
-  The second session starts from `HEAD` and proceeds from there.
+  The second session does *distinct* work, so its branch starts from the
+  trunk (`main`/`master`) — not the primary checkout's `HEAD` — so it stays
+  independently mergeable. It only falls back to `HEAD` when the repo has
+  neither `main` nor `master`.
 - Do not edit the lockfile JSON by hand to "skip" this step. The
   `PreToolUse` gate will keep denying writes.
 - When you finish, invoke `/leash-session-end` to remove the worktree

@@ -92,7 +92,11 @@ one working tree and clobber each other's WIP. The session leash
 detects this at `SessionStart`, blocks writes in the non-elected
 session via a `PreToolUse` gate, and routes that session into its own
 sibling git worktree via the `/leash-session-new` skill — auto-invoked
-by the blocked agent. The worktree is cleaned up by
+by the blocked agent. That worktree's `session/<id>` branch is cut from
+the trunk (`main`/`master`, falling back to `HEAD` only when neither
+exists), so a concurrent session's distinct work stays independently
+mergeable rather than inheriting the primary checkout's branch. The
+worktree is cleaned up by
 `/leash-session-end` and a conservative sweep in `cycle_done` that only
 touches worktrees whose branch is merged, clean, and whose PID is dead.
 

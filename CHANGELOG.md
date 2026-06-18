@@ -6,6 +6,16 @@ are appended automatically by `scripts/harness/cycle_done.py` when a cycle
 closes green; edit them by hand to add detail.
 
 ## [Unreleased]
+### 2026-06-17 — session-new-base-main
+- `/leash-session-new` now cuts the `session/<id>` worktree branch from the
+  trunk (`main`/`master`) instead of the primary checkout's `HEAD`, falling
+  back to `HEAD` only when the repo has neither. A concurrent session does
+  *distinct* work, so basing off `HEAD` grafted the primary branch's commits
+  onto `session/<id>` — making it non-mergeable to `main` on its own and
+  stranding it if that branch was later rebased or abandoned. New
+  `tests/test_session_new.py` covers main / master / no-trunk bases (the
+  module had no test before).
+
 ### 2026-06-08 — worktree-aware-discipline
 - Make git worktrees a first-class, opt-in part of the branch-discipline
   workflow. `cycle_done` now prints an advisory reminder to `git worktree
