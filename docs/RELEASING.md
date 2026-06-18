@@ -22,9 +22,9 @@ A release where these disagree is a bug.
 
 ## The CHANGELOG
 
-`CHANGELOG.md` follows [Keep a Changelog](https://keepachangelog.com/), with
-one local convention: entries are **not** cut into versioned headings. They
-accumulate under `## [Unreleased]` as dated, named subsections:
+`CHANGELOG.md` follows [Keep a Changelog](https://keepachangelog.com/). During
+development, entries accumulate under `## [Unreleased]` as dated, named
+subsections:
 
 ```
 ## [Unreleased]
@@ -36,6 +36,22 @@ accumulate under `## [Unreleased]` as dated, named subsections:
 edit it by hand to add detail. By the time you cut a release the entry is
 usually already there from the feature work — confirm it reads well rather
 than writing it from scratch.
+
+**At release time, cut the heading.** Rename `## [Unreleased]` to the version
+being shipped and open a fresh empty `[Unreleased]` above it:
+
+```
+## [Unreleased]
+
+## [X.Y.Z] — <release-date>
+### 2026-06-17 — session-new-base-main
+- …
+```
+
+This keeps `[Unreleased]` honest — it only ever holds work that has not
+shipped — and lets the CHANGELOG answer "what shipped in version X?" without
+reaching for `git log`. The dated `### <slug>` subsections are preserved as-is
+under the version heading.
 
 ## Steps
 
@@ -53,8 +69,10 @@ than writing it from scratch.
    - `pyproject.toml` → `version = "<version>"`
    - `.claude-plugin/plugin.json` → `"version": "<version>"`
 
-4. **Confirm the CHANGELOG** `[Unreleased]` section names the feature(s) in
-   this release and reads clearly.
+4. **Cut the CHANGELOG heading.** Confirm `[Unreleased]` names the feature(s)
+   in this release and reads clearly, then rename `## [Unreleased]` to
+   `## [<version>] — <release-date>` and add a fresh empty `## [Unreleased]`
+   above it.
 
 5. **Verify green** in the worktree before merging:
 
