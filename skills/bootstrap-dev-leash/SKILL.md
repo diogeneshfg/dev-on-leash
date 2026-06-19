@@ -98,6 +98,15 @@ The optional blocks are delimited in `AGENTS.md.tmpl` by HTML-comment markers:
 
 `CLAUDE.md.tmpl` and `settings.json.tmpl` have no optional blocks.
 
+### Migration note: SessionStart hook removal
+
+Re-running bootstrap on an existing project re-renders `.claude/settings.json`
+from `templates/settings.json.tmpl`, which **no longer registers a
+`SessionStart` hook**. Re-bootstrapping therefore migrates a project off the
+old session leash automatically. If settings.json is merged rather than
+overwritten, manually remove any existing `"SessionStart"` entry — it is
+superseded by the `PreToolUse` worktree gate and should not remain.
+
 ### Writing — apply the no-overwrite constraint
 
 For each of `CLAUDE.md`, `AGENTS.md`, `.claude/settings.json`:
@@ -129,18 +138,18 @@ If the project has no verification commands at all, still write `.harness/gates`
 The harness writes runtime files to `.harness/` that must NEVER be
 committed:
 
-- `.harness/exceptions.log` — audit log for `cycle_done --force`.
-- `.harness/sessions/<pid>.json` — per-session lockfiles written by the
-  session-leash `SessionStart` hook. They record live PIDs and
-  worktree paths.
+- `.harness/exceptions.log` — audit log for `cycle_done --force` and
+  `allow_main_write` (worktree-leash one-shot escapes).
+- `.harness/allow-main-write` — transient one-shot escape marker (the
+  gate consumes it on the next main-tree write).
 
 Read the target project's `.gitignore` (create it if absent). Ensure
-both of these lines are present; add whichever is missing, leaving the
-file otherwise byte-identical:
+these lines are present; add any that are missing, leaving the file
+otherwise byte-identical:
 
 ```
 .harness/exceptions.log
-.harness/sessions/
+.harness/allow-main-write
 ```
 
 If you must add lines, group them under a `# dev-on-leash` comment

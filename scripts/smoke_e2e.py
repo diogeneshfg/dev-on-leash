@@ -142,19 +142,19 @@ review_rules: []
     assert good.returncode == 0, "gate should pass when clean"
 
 
-def _exercise_session_leash() -> None:
-    """Run the session-leash dogfood script as a self-contained step."""
+def _exercise_worktree_gate() -> None:
+    """Run the worktree-gate dogfood script as a self-contained step."""
     rc = subprocess.call(
-        [sys.executable, str(PLUGIN_ROOT / "scripts" / "dogfood_session.py")],
+        [sys.executable, str(PLUGIN_ROOT / "scripts" / "dogfood_worktree_gate.py")],
     )
-    assert rc == 0, f"dogfood_session.py exit {rc}"
+    assert rc == 0, f"dogfood_worktree_gate.py exit {rc}"
 
 
 def _exercise_session_hooks_subprocess(repo: Path) -> None:
     """Drive the hook commands from settings.json.tmpl as actual subprocesses.
 
-    Step 9 (dogfood_session.py) exercises the *in-process* API, so it can't
-    catch invocation-surface bugs — e.g., direct path invocation breaking
+    Step 9 (dogfood_worktree_gate.py) exercises the *in-process* API, so it
+    can't catch invocation-surface bugs — e.g., direct path invocation breaking
     absolute imports. This step takes each `"command"` string from the
     template, runs it as Claude Code would (subprocess + stdin JSON for the
     PreToolUse gate), against the throwaway repo where init.sh just
@@ -288,19 +288,19 @@ def main(argv: list[str]) -> int:
         except Exception as exc:  # noqa: BLE001
             step(8, "arch-leash: gate rejects violation, passes clean", False, str(exc))
 
-        # 9 — exercise the session leash on a throwaway repo
+        # 9 — exercise the worktree gate on a throwaway repo
         try:
-            _exercise_session_leash()
-            step(9, "session-leash: deny->worktree->allow path", True)
+            _exercise_worktree_gate()
+            step(9, "worktree-gate: main-deny -> wt-allow -> escape", True)
         except Exception as exc:  # noqa: BLE001
-            step(9, "session-leash: deny->worktree->allow path", False, str(exc))
+            step(9, "worktree-gate: main-deny -> wt-allow -> escape", False, str(exc))
 
         # 10 — drive the template's hook commands as actual subprocesses
         try:
             _exercise_session_hooks_subprocess(repo)
-            step(10, "session-leash hooks: subprocess invocation", True)
+            step(10, "harness hooks: subprocess invocation", True)
         except Exception as exc:  # noqa: BLE001
-            step(10, "session-leash hooks: subprocess invocation", False, str(exc))
+            step(10, "harness hooks: subprocess invocation", False, str(exc))
 
     finally:
         elapsed = time.time() - t0

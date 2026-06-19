@@ -33,14 +33,12 @@ def test_agents_template_has_architecture_block():
     assert "## Architecture" in body
 
 
-def test_settings_template_has_session_leash_hooks():
-    from pathlib import Path
-    text = Path("templates/settings.json.tmpl").read_text(encoding="utf-8")
-    assert "SessionStart" in text
+def test_settings_template_has_worktree_leash_hook():
+    text = (ROOT / "templates" / "settings.json.tmpl").read_text(encoding="utf-8")
+    assert "SessionStart" not in text
     assert "PreToolUse" in text
     # Hooks must be invoked as modules (-m), not by path. See
     # test_session_hook_commands_in_template_actually_run below.
-    assert "scripts.harness.session_start" in text
     assert "scripts.harness.session_gate" in text
     assert "Edit|Write|MultiEdit|NotebookEdit" in text
 
@@ -83,16 +81,19 @@ def test_session_hook_commands_in_template_actually_run(tmp_path):
         )
 
 
-def test_claude_md_template_mentions_session_leash():
-    from pathlib import Path
-    text = Path("templates/CLAUDE.md.tmpl").read_text(encoding="utf-8")
-    assert "session leash" in text.lower() or "/leash-session-new" in text
+def test_claude_md_template_mentions_worktree_leash():
+    text = (ROOT / "templates" / "CLAUDE.md.tmpl").read_text(encoding="utf-8")
+    assert "worktree leash" in text.lower()
+    assert "/leash-start-work" in text
 
 
-def test_agents_md_template_mentions_concurrent_sessions():
+def test_agents_md_template_mentions_concurrent_safety():
     from pathlib import Path
     text = Path("templates/AGENTS.md.tmpl").read_text(encoding="utf-8")
-    assert "concurrent" in text.lower() or "/leash-session-new" in text
+    # The worktree leash makes concurrent sessions safe by construction;
+    # the template must still speak to concurrency under the new framing.
+    assert "concurrent" in text.lower()
+    assert "/leash-start-work" in text
 
 
 def test_agents_template_documents_worktree_start_path():

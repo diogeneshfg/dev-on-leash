@@ -13,11 +13,9 @@ parallel without the stash-dance (dirty tree blocking `git checkout`, IDE
 reindexing, debugger resets). This is the *proactive* worktree path: the
 physical version of the mandatory "branch first, edit after" rule.
 
-This skill is **voluntary**. Nothing forces it (unlike `/leash-session-new`,
-which the session-leash hook forces when two sessions collide). A developer
-who does not need parallelism can still just `git checkout -b <type>/<name>`.
-
-Do NOT use this to escape a session-leash block — that is `/leash-session-new`.
+This skill is the **single, mandatory** path to begin a change. The worktree
+leash makes the main worktree read-only to write tools, so you cannot edit
+in the main checkout — start here, then edit inside `.worktrees/<slug>`.
 
 ## How
 
@@ -51,11 +49,8 @@ Do NOT use this to escape a session-leash block — that is `/leash-session-new`
 
 ## Cleanup
 
-When the branch is merged, remove the worktree:
-
-```
-git worktree remove .worktrees/<slug>
-```
+When the branch is merged, run `/leash-finish-work <slug>` (refuses on
+dirty/unmerged work).
 
 `cycle_done.py` prints an advisory reminder for merged `<type>/<slug>`
 worktrees, but never removes them for you — feature branches may have an open
@@ -65,7 +60,7 @@ PR, so the human decides.
 
 - This skill owns the **convention + guardrails**, not a worktree engine. It
   never reimplements `git worktree`.
-- It does NOT copy uncommitted WIP into the new worktree (same stance as
-  `/leash-session-new` — start from `main`).
+- It does NOT copy uncommitted WIP into the new worktree (start from `main`,
+  never copy WIP).
 - It never weakens branch discipline; it makes the disciplined path comfortable
   when several changes are in flight.

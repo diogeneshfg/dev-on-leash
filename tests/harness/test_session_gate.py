@@ -1,151 +1,184 @@
-"""PreToolUse-gate tests."""
+"""Stateless worktree-gate tests."""
 from __future__ import annotations
 
-import json
-import os
 from pathlib import Path
 
-import pytest
-
-from scripts.harness import session_lockfile as sl
-from scripts.harness.session_gate import decide, Decision
-
-
-def _write_lf(sessions_dir: Path, pid: int, state: str,
-              cwd: str, worktree_path: str | None = None) -> None:
-    lf = sl.Lockfile(
-        schema=1, pid=pid, started_at="x", session_id="s",
-        primary_cwd=cwd, state=state,
-        worktree_path=worktree_path, worktree_branch=None,
-    )
-    sl.write_lockfile(sessions_dir / f"{pid}.json", lf)
+from scripts.harness.session_gate import (
+    Decision, decide, list_worktrees, GATED_TOOLS,
+)
 
 
-def test_no_lockfile_allows(tmp_path: Path):
-    sessions_dir = tmp_path / ".harness" / "sessions"
-    sessions_dir.mkdir(parents=True)
+def _mk(tmp_path: Path) -> tuple[Path, Path]:
+    """Return (marker_path, log_path) under a fresh .harness."""
+    harness = tmp_path / ".harness"
+    harness.mkdir(parents=True, exist_ok=True)
+    return harness / "allow-main-write", harness / "exceptions.log"
+
+
+def test_non_gated_tool_allows(tmp_path: Path):
+    marker, log = _mk(tmp_path)
+    main_wt = tmp_path / "repo"
+    main_wt.mkdir()
     d = decide(
-        sessions_dir=sessions_dir, self_pid=99999,
-        tool_name="Edit", tool_input={"file_path": str(tmp_path / "x.py")},
-    )
-    assert d.allow is True
-
-
-def test_primary_state_allows(tmp_path: Path):
-    sessions_dir = tmp_path / ".harness" / "sessions"
-    _write_lf(sessions_dir, os.getpid(), sl.STATE_PRIMARY, str(tmp_path))
-    d = decide(
-        sessions_dir=sessions_dir, self_pid=os.getpid(),
-        tool_name="Write", tool_input={"file_path": str(tmp_path / "x.py")},
-    )
-    assert d.allow is True
-
-
-def test_pending_worktree_denies_edit(tmp_path: Path):
-    sessions_dir = tmp_path / ".harness" / "sessions"
-    _write_lf(sessions_dir, os.getpid(), sl.STATE_PENDING_WORKTREE, str(tmp_path))
-    d = decide(
-        sessions_dir=sessions_dir, self_pid=os.getpid(),
-        tool_name="Edit", tool_input={"file_path": str(tmp_path / "x.py")},
-    )
-    assert d.allow is False
-    assert "/leash-session-new" in d.reason
-
-
-def test_pending_resolution_also_denies(tmp_path: Path):
-    sessions_dir = tmp_path / ".harness" / "sessions"
-    _write_lf(sessions_dir, os.getpid(), sl.STATE_PENDING_RESOLUTION, str(tmp_path))
-    d = decide(
-        sessions_dir=sessions_dir, self_pid=os.getpid(),
-        tool_name="MultiEdit", tool_input={"file_path": str(tmp_path / "x.py")},
-    )
-    assert d.allow is False
-
-
-def test_in_worktree_allows_edit_inside(tmp_path: Path):
-    sessions_dir = tmp_path / ".harness" / "sessions"
-    wt = tmp_path / "wt"
-    wt.mkdir()
-    _write_lf(sessions_dir, os.getpid(), sl.STATE_IN_WORKTREE,
-              str(tmp_path), worktree_path=str(wt))
-    d = decide(
-        sessions_dir=sessions_dir, self_pid=os.getpid(),
-        tool_name="Edit", tool_input={"file_path": str(wt / "y.py")},
-    )
-    assert d.allow is True
-
-
-def test_in_worktree_denies_edit_outside(tmp_path: Path):
-    sessions_dir = tmp_path / ".harness" / "sessions"
-    wt = tmp_path / "wt"
-    wt.mkdir()
-    _write_lf(sessions_dir, os.getpid(), sl.STATE_IN_WORKTREE,
-              str(tmp_path), worktree_path=str(wt))
-    d = decide(
-        sessions_dir=sessions_dir, self_pid=os.getpid(),
-        tool_name="Edit", tool_input={"file_path": str(tmp_path / "outside.py")},
-    )
-    assert d.allow is False
-    assert str(wt) in d.reason
-
-
-def test_unknown_tool_name_allows(tmp_path: Path):
-    sessions_dir = tmp_path / ".harness" / "sessions"
-    _write_lf(sessions_dir, os.getpid(), sl.STATE_PENDING_WORKTREE, str(tmp_path))
-    d = decide(
-        sessions_dir=sessions_dir, self_pid=os.getpid(),
         tool_name="Bash", tool_input={"command": "ls"},
+        worktrees=[main_wt], marker_path=marker, log_path=log,
     )
     assert d.allow is True
 
 
-def test_notebook_edit_is_gated_outside_worktree(tmp_path: Path):
-    """NotebookEdit modifies .ipynb files and must be gated like
-    Edit/Write/MultiEdit. Regression: matcher previously only included
-    Edit|Write|MultiEdit so a pending-worktree session could corrupt a
-    peer's notebooks. NotebookEdit's input uses `notebook_path`.
-    """
-    sessions_dir = tmp_path / ".harness" / "sessions"
-    _write_lf(sessions_dir, os.getpid(), sl.STATE_PENDING_WORKTREE, str(tmp_path))
+def test_main_tree_write_denied(tmp_path: Path):
+    marker, log = _mk(tmp_path)
+    main_wt = tmp_path / "repo"
+    main_wt.mkdir()
     d = decide(
-        sessions_dir=sessions_dir, self_pid=os.getpid(),
-        tool_name="NotebookEdit",
-        tool_input={"notebook_path": str(tmp_path / "n.ipynb")},
+        tool_name="Edit",
+        tool_input={"file_path": str(main_wt / "README.md")},
+        worktrees=[main_wt], marker_path=marker, log_path=log,
     )
     assert d.allow is False
-    assert "/leash-session-new" in d.reason
+    assert "/leash-start-work" in d.reason
 
 
-def test_notebook_edit_allowed_inside_worktree(tmp_path: Path):
-    sessions_dir = tmp_path / ".harness" / "sessions"
-    wt = tmp_path / "wt"
-    wt.mkdir()
-    _write_lf(sessions_dir, os.getpid(), sl.STATE_IN_WORKTREE,
-              str(tmp_path), worktree_path=str(wt))
+def test_linked_worktree_write_allowed(tmp_path: Path):
+    marker, log = _mk(tmp_path)
+    main_wt = tmp_path / "repo"
+    linked = tmp_path / "repo--wt"
+    main_wt.mkdir()
+    linked.mkdir()
     d = decide(
-        sessions_dir=sessions_dir, self_pid=os.getpid(),
-        tool_name="NotebookEdit",
-        tool_input={"notebook_path": str(wt / "n.ipynb")},
+        tool_name="Write",
+        tool_input={"file_path": str(linked / "x.py")},
+        worktrees=[main_wt, linked], marker_path=marker, log_path=log,
     )
     assert d.allow is True
 
 
-def test_in_worktree_denies_sibling_path_prefix_attack(tmp_path: Path):
-    """The worktree-boundary check must be path-component aware. A
-    sibling directory whose name STARTS with the worktree's name (e.g.
-    `repo--session-abcEVIL` vs `repo--session-abc`) must not be treated
-    as inside the worktree. Regression test for a startswith() bypass.
-    """
-    sessions_dir = tmp_path / ".harness" / "sessions"
-    wt = tmp_path / "session-abc"
-    wt.mkdir()
-    evil = tmp_path / "session-abcEVIL"
-    evil.mkdir()
-    _write_lf(sessions_dir, os.getpid(), sl.STATE_IN_WORKTREE,
-              str(tmp_path), worktree_path=str(wt))
+def test_nested_worktree_beats_main_prefix(tmp_path: Path):
+    """`.worktrees/<slug>` lives inside the repo; longest-prefix match
+    must classify a target there as the *linked* worktree, not main."""
+    marker, log = _mk(tmp_path)
+    main_wt = tmp_path / "repo"
+    nested = main_wt / ".worktrees" / "feat-x"
+    nested.mkdir(parents=True)
     d = decide(
-        sessions_dir=sessions_dir, self_pid=os.getpid(),
-        tool_name="Edit", tool_input={"file_path": str(evil / "bad.py")},
+        tool_name="Edit",
+        tool_input={"file_path": str(nested / "x.py")},
+        worktrees=[main_wt, nested], marker_path=marker, log_path=log,
     )
-    assert d.allow is False, "sibling with prefixed name must not be treated as inside worktree"
-    assert str(wt) in d.reason
+    assert d.allow is True
+
+
+def test_outside_repo_allows(tmp_path: Path):
+    marker, log = _mk(tmp_path)
+    main_wt = tmp_path / "repo"
+    main_wt.mkdir()
+    d = decide(
+        tool_name="Edit",
+        tool_input={"file_path": str(tmp_path / "elsewhere" / "x.py")},
+        worktrees=[main_wt], marker_path=marker, log_path=log,
+    )
+    assert d.allow is True
+
+
+def test_sibling_prefix_attack_denied(tmp_path: Path):
+    """A sibling whose name starts with the main name is still outside
+    every linked worktree, so it falls back to... outside the repo →
+    allow. The real regression we guard: a target literally inside main
+    must not be mis-allowed by a startswith bug. Use a nested case."""
+    marker, log = _mk(tmp_path)
+    main_wt = tmp_path / "repo"
+    linked = main_wt / ".worktrees" / "abc"
+    evil = main_wt / ".worktrees" / "abcEVIL"
+    linked.mkdir(parents=True)
+    evil.mkdir(parents=True)
+    d = decide(
+        tool_name="Edit",
+        tool_input={"file_path": str(evil / "bad.py")},
+        worktrees=[main_wt, linked], marker_path=marker, log_path=log,
+    )
+    # abcEVIL is not inside `abc`; longest match is main → deny.
+    assert d.allow is False
+    assert "/leash-start-work" in d.reason
+
+
+def test_one_shot_marker_allows_consumes_and_logs(tmp_path: Path):
+    marker, log = _mk(tmp_path)
+    main_wt = tmp_path / "repo"
+    main_wt.mkdir()
+    marker.write_text('{"schema":1,"reason":"typo"}', encoding="utf-8")
+    d = decide(
+        tool_name="Edit",
+        tool_input={"file_path": str(main_wt / "README.md")},
+        worktrees=[main_wt], marker_path=marker, log_path=log, gate_pid=42,
+    )
+    assert d.allow is True
+    assert not marker.exists(), "marker must be consumed"
+    assert log.exists() and "main-write" in log.read_text(encoding="utf-8")
+
+
+def test_second_main_write_after_consume_denied(tmp_path: Path):
+    marker, log = _mk(tmp_path)
+    main_wt = tmp_path / "repo"
+    main_wt.mkdir()
+    marker.write_text("{}", encoding="utf-8")
+    first = decide(
+        tool_name="Edit", tool_input={"file_path": str(main_wt / "a.md")},
+        worktrees=[main_wt], marker_path=marker, log_path=log,
+    )
+    second = decide(
+        tool_name="Edit", tool_input={"file_path": str(main_wt / "b.md")},
+        worktrees=[main_wt], marker_path=marker, log_path=log,
+    )
+    assert first.allow is True
+    assert second.allow is False
+
+
+def test_fail_open_when_no_worktrees(tmp_path: Path):
+    marker, log = _mk(tmp_path)
+    d = decide(
+        tool_name="Edit", tool_input={"file_path": str(tmp_path / "x.py")},
+        worktrees=None, marker_path=marker, log_path=log,
+    )
+    assert d.allow is True
+
+
+def test_notebook_edit_is_gated(tmp_path: Path):
+    marker, log = _mk(tmp_path)
+    main_wt = tmp_path / "repo"
+    main_wt.mkdir()
+    d = decide(
+        tool_name="NotebookEdit",
+        tool_input={"notebook_path": str(main_wt / "n.ipynb")},
+        worktrees=[main_wt], marker_path=marker, log_path=log,
+    )
+    assert d.allow is False
+
+
+def test_no_target_allows(tmp_path: Path):
+    marker, log = _mk(tmp_path)
+    main_wt = tmp_path / "repo"
+    main_wt.mkdir()
+    d = decide(
+        tool_name="Edit", tool_input={},
+        worktrees=[main_wt], marker_path=marker, log_path=log,
+    )
+    assert d.allow is True
+
+
+def test_list_worktrees_on_real_repo(tmp_path: Path):
+    import subprocess
+    repo = tmp_path / "r"
+    repo.mkdir()
+    subprocess.check_call(["git", "init", "-q", "-b", "main"], cwd=repo)
+    subprocess.check_call(["git", "config", "user.email", "d@d"], cwd=repo)
+    subprocess.check_call(["git", "config", "user.name", "d"], cwd=repo)
+    (repo / "seed").write_text("s\n", encoding="utf-8")
+    subprocess.check_call(["git", "add", "."], cwd=repo)
+    subprocess.check_call(["git", "commit", "-q", "-m", "seed"], cwd=repo)
+    wts = list_worktrees(repo)
+    assert wts is not None
+    assert wts[0] == repo.resolve()
+
+
+def test_list_worktrees_non_repo_returns_none(tmp_path: Path):
+    assert list_worktrees(tmp_path) is None

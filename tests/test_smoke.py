@@ -12,8 +12,8 @@ def test_smoke_e2e_includes_architecture_step():
     assert "ARCH-LEASH-VIOLATION" in text
 
 
-def test_smoke_e2e_includes_session_leash_step():
+def test_smoke_e2e_includes_worktree_gate_step():
     from pathlib import Path
     text = Path("scripts/smoke_e2e.py").read_text(encoding="utf-8")
-    assert "_exercise_session_leash" in text
-    assert "dogfood_session" in text or "session_gate" in text
+    assert "_exercise_worktree_gate" in text
+    assert "dogfood_worktree_gate" in text or "session_gate" in text

@@ -8,6 +8,17 @@ versioned `## [X.Y.Z] — <date>` heading (see `docs/RELEASING.md`), so
 `[Unreleased]` only ever holds work that has not shipped in a release.
 
 ## [Unreleased]
+### Changed
+- **BREAKING:** the session leash is replaced by a **worktree leash**. The
+  main worktree is now read-only to write tools; all work happens in a
+  linked worktree via `/leash-start-work`, cleaned up with
+  `/leash-finish-work`. Removed: `SessionStart` detection, per-session
+  lockfiles (`.harness/sessions/`), PID election, and the
+  `/leash-session-new` + `/leash-session-end` skills. A one-shot audited
+  escape (`python -m scripts.harness.allow_main_write`) permits occasional
+  direct main-tree writes. Re-bootstrap existing projects to drop the
+  `SessionStart` hook from `.claude/settings.json`.
+
 ### 2026-06-17 — changelog-versioned-headings
 - Recut already-released entries into versioned `## [X.Y.Z] — <date>` headings
   (0.3.0, 0.4.0) instead of letting them accumulate under `[Unreleased]`, so
