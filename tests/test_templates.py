@@ -87,10 +87,13 @@ def test_claude_md_template_mentions_worktree_leash():
     assert "/leash-start-work" in text
 
 
-def test_agents_md_template_mentions_concurrent_sessions():
+def test_agents_md_template_mentions_concurrent_safety():
     from pathlib import Path
     text = Path("templates/AGENTS.md.tmpl").read_text(encoding="utf-8")
-    assert "concurrent" in text.lower() or "/leash-session-new" in text
+    # The worktree leash makes concurrent sessions safe by construction;
+    # the template must still speak to concurrency under the new framing.
+    assert "concurrent" in text.lower()
+    assert "/leash-start-work" in text
 
 
 def test_agents_template_documents_worktree_start_path():

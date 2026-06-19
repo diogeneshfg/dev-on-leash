@@ -11,11 +11,13 @@ def test_skill_file_exists():
     assert SKILL_PATH.exists()
 
 
-def test_skill_documents_gitignore_patch_for_sessions():
+def test_skill_documents_gitignore_patch_for_runtime_files():
     text = SKILL_PATH.read_text(encoding="utf-8")
-    # The skill must explicitly tell Claude to add `.harness/sessions/`
-    # to the target project's .gitignore so lockfiles are not committed.
-    assert ".harness/sessions/" in text
+    # The skill must tell Claude to add the harness runtime files to the
+    # target project's .gitignore: the audit log and the transient
+    # one-shot worktree-leash escape marker.
+    assert ".harness/exceptions.log" in text
+    assert ".harness/allow-main-write" in text
     assert ".gitignore" in text
 
 

@@ -140,13 +140,16 @@ committed:
 
 - `.harness/exceptions.log` — audit log for `cycle_done --force` and
   `allow_main_write` (worktree-leash one-shot escapes).
+- `.harness/allow-main-write` — transient one-shot escape marker (the
+  gate consumes it on the next main-tree write).
 
 Read the target project's `.gitignore` (create it if absent). Ensure
-this line is present; add it if missing, leaving the file otherwise
-byte-identical:
+these lines are present; add any that are missing, leaving the file
+otherwise byte-identical:
 
 ```
 .harness/exceptions.log
+.harness/allow-main-write
 ```
 
 If you must add lines, group them under a `# dev-on-leash` comment
