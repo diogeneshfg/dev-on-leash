@@ -8,6 +8,8 @@ versioned `## [X.Y.Z] — <date>` heading (see `docs/RELEASING.md`), so
 `[Unreleased]` only ever holds work that has not shipped in a release.
 
 ## [Unreleased]
+
+## [0.5.0] — 2026-06-19
 ### Changed
 - **BREAKING:** the session leash is replaced by a **worktree leash**. The
   main worktree is now read-only to write tools; all work happens in a
