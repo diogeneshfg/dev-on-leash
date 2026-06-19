@@ -153,8 +153,8 @@ def _exercise_worktree_gate() -> None:
 def _exercise_session_hooks_subprocess(repo: Path) -> None:
     """Drive the hook commands from settings.json.tmpl as actual subprocesses.
 
-    Step 9 (dogfood_session.py) exercises the *in-process* API, so it can't
-    catch invocation-surface bugs — e.g., direct path invocation breaking
+    Step 9 (dogfood_worktree_gate.py) exercises the *in-process* API, so it
+    can't catch invocation-surface bugs — e.g., direct path invocation breaking
     absolute imports. This step takes each `"command"` string from the
     template, runs it as Claude Code would (subprocess + stdin JSON for the
     PreToolUse gate), against the throwaway repo where init.sh just
