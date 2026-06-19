@@ -151,12 +151,15 @@ This is the *physical* form of "branch first, edit after": one folder per
 branch, branched from `main`. It does not replace the rule — it makes it
 comfortable. When the branch is merged, run `git worktree remove
 .worktrees/<slug>`; `cycle_done.py` prints an advisory reminder once it is
-merged. This is distinct from the reactive session leash below, which fires
-only when two Claude Code sessions collide.
+merged. The worktree leash below makes this the *only* way to write — the main tree is read-only.
 
-### Concurrent sessions
+### Worktree leash (main is read-only)
 
-If two Claude Code sessions touch this repo at once, the second one is
-blocked from writing until it invokes `/leash-session-new`. That skill
-creates a sibling `git worktree` so each session has its own checkout.
-Close out with `/leash-session-end`.
+A `PreToolUse` gate denies writes (`Edit`/`Write`/`MultiEdit`/`NotebookEdit`)
+whose target is in the **main worktree**. Begin every change with
+`/leash-start-work` (creates `.worktrees/<slug>` on `<type>/<slug>` from
+`main`) and edit inside that worktree. Concurrent Claude Code sessions are
+safe by construction — each has its own worktree; none may touch the main
+tree. Finish with `/leash-finish-work`. For a one-off main-tree edit, run
+`python -m scripts.harness.allow_main_write "<reason>"` (audited in
+`.harness/exceptions.log`) and retry.

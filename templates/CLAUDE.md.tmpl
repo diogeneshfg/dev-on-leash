@@ -44,10 +44,16 @@ stash-dance), invoke `/leash-start-work`. It creates `.worktrees/<slug>` on a
 after". Opt-in; it never weakens branch discipline. Remove the worktree after
 merge with `git worktree remove .worktrees/<slug>`.
 
-## Concurrent sessions
+## Worktree leash (main is read-only)
 
-The harness installs a **session leash**. If you open a second Claude
-Code session on this repo, `SessionStart` will detect the concurrency
-and `PreToolUse` will deny `Edit`/`Write`/`MultiEdit` until you invoke
-`/leash-session-new` — which creates a sibling git worktree and
-unblocks writes. Run `/leash-session-end` when done.
+The harness installs a **worktree leash**: a `PreToolUse` gate denies any
+`Edit`/`Write`/`MultiEdit`/`NotebookEdit` whose target is in the **main
+worktree**. All work happens in a linked worktree — run `/leash-start-work`
+to create one (`.worktrees/<slug>` on `<type>/<slug>` from `main`), then
+edit there. This makes concurrent sessions safe by construction: each works
+in its own worktree, nobody edits the shared main tree. Clean up with
+`/leash-finish-work`.
+
+For a one-off direct edit to the main tree, authorize a single write:
+`python -m scripts.harness.allow_main_write "<reason>"` (logged to
+`.harness/exceptions.log`), then retry the edit.

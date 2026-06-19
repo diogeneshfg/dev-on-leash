@@ -32,19 +32,18 @@ def test_followups_records_touches_integrity():
     assert "touches-integrity" in text
 
 
-def test_readme_has_session_leash_section():
-    from pathlib import Path
-    text = Path("README.md").read_text(encoding="utf-8")
-    assert "## Session leash" in text
-    assert "/leash-session-new" in text
-    assert "/leash-session-end" in text
+def test_readme_has_worktree_leash_section():
+    text = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert "## Worktree leash" in text
+    assert "/leash-start-work" in text
+    assert "/leash-finish-work" in text
+    assert "allow_main_write" in text
 
 
-def test_readme_trust_model_names_session_leash():
-    from pathlib import Path
-    text = Path("README.md").read_text(encoding="utf-8")
-    trust_block = text.split("## Trust model", 1)[1].split("##", 1)[0]
-    assert "session" in trust_block.lower()
+def test_readme_trust_model_names_worktree_leash():
+    text = (ROOT / "README.md").read_text(encoding="utf-8")
+    lower = text.lower()
+    assert "worktree leash" in lower
 
 
 def test_readme_documents_worktree_workflow():

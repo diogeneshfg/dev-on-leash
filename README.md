@@ -85,31 +85,33 @@ the generated `.harness/checks/`, and `scripts/dogfood_architecture.py`
 (which plants a deliberate `import requests` in the harness layer and
 asserts the gate rejects it).
 
-## Session leash
+## Worktree leash
 
-Concurrent Claude Code sessions on the same repo would otherwise share
-one working tree and clobber each other's WIP. The session leash
-detects this at `SessionStart`, blocks writes in the non-elected
-session via a `PreToolUse` gate, and routes that session into its own
-sibling git worktree via the `/leash-session-new` skill — auto-invoked
-by the blocked agent. That worktree's `session/<id>` branch is cut from
-the trunk (`main`/`master`, falling back to `HEAD` only when neither
-exists), so a concurrent session's distinct work stays independently
-mergeable rather than inheriting the primary checkout's branch. The
-worktree is cleaned up by
-`/leash-session-end` and a conservative sweep in `cycle_done` that only
-touches worktrees whose branch is merged, clean, and whose PID is dead.
+The **main worktree is read-only** to write tools. A `PreToolUse` gate
+denies any `Edit`/`Write`/`MultiEdit`/`NotebookEdit` whose target resolves
+into the main worktree; all work happens in a linked worktree created by
+`/leash-start-work` (`.worktrees/<slug>` on a `<type>/<slug>` branch from
+`main`). Clean up with `/leash-finish-work`.
 
-Lockfiles live in `.harness/sessions/<pid>.json` (gitignored). PID
-liveness is checked via `ctypes` on Windows and `os.kill(pid, 0)` on
-POSIX. The two-phase write at `SessionStart` deterministically elects
-the lowest-PID live session as primary, so the design needs no OS
-lock.
+This makes concurrent Claude Code sessions safe **by construction**: each
+session works on its own branch in its own worktree, and none of them can
+edit the shared main tree — so two sessions can never clobber each other's
+WIP. There is no session detection, no lockfiles, and no PID election (the
+previous design's election mis-elected two primaries on Windows, where PIDs
+are not monotonic).
 
-`dev-on-leash` dogfoods this on itself: see `scripts/dogfood_session.py`,
-which plants a peer lockfile, runs the hook, asserts the gate denies
-an `Edit`, drives the resolution path, and asserts the gate unblocks
-once the worktree is in place.
+The gate is stateless: it runs `git worktree list` and matches the target
+to the longest-prefix worktree. For a one-off direct edit to the main tree,
+authorize a single write with
+`python -m scripts.harness.allow_main_write "<reason>"`; the gate consumes
+the authorization on the next main-tree write and logs it to
+`.harness/exceptions.log`. The main tree is expected to mirror the remote —
+you keep it synced with ordinary `git fetch`/`pull`/merge.
+
+`dev-on-leash` dogfoods this on itself: see
+`scripts/dogfood_worktree_gate.py`, run from `scripts/smoke_e2e.py`, which
+asserts the gate denies a main-tree edit, allows an edit inside a worktree,
+and honors a one-shot escape exactly once.
 
 ## Parallel work with worktrees (opt-in)
 
@@ -126,8 +128,7 @@ comfortable, without the stash-dance.
   once a `<type>/<slug>` branch is merged (it never removes feature worktrees
   for you).
 
-This is distinct from the **session leash**, which reactively creates a sibling
-worktree only when two Claude Code sessions collide on the same repo.
+The worktree leash makes this the only path to writing — the main tree is read-only, so every change starts here.
 
 ## Trust model
 
@@ -139,24 +140,24 @@ Be precise about what the harness enforces and what it only assists:
   [templates/ci-snippet.md](templates/ci-snippet.md)) and/or as the opt-in
   pre-commit hook, and a checkbox flipped by hand without the work done is
   rejected. A task heading with no `task-meta` block is human-run and not
-  machine-checked. **Session leash:** while a second session is in
-  `pending-worktree` or `pending-resolution`, the `PreToolUse` gate denies
-  `Edit`, `Write`, and `MultiEdit`.
+  machine-checked. **Worktree leash:** the PreToolUse gate denies writes
+  whose target is in the main worktree; bypass requires editing/removing the
+  hook line in `.claude/settings.json` (a visible audit event).
 - **By convention only.** `touches` is self-reported: the harness does not yet
   check that a task modified *only* its declared files, so the parallel-safety
   of `plan_schedule.py` depends on `touches` being accurate. Verifying it
   without false positives needs its own design — tracked as a follow-up.
-  **Session leash:** `Bash` is intentionally outside the gate matcher (so
-  `/leash-session-new` can run `git worktree add`); a determined session
-  could write to the primary checkout via `>` redirects. Same posture as
-  `touches`.
+  **Worktree leash:** `Bash` is outside the gate matcher (so
+  `/leash-start-work` can run `git worktree add` and the one-shot escape can
+  be authorized); a determined session could `> file` into the main tree. The
+  one-shot escape is itself an audited, deliberate convention.
 - **Escape hatch.** `cycle_done.py --force -m <reason>` closes a cycle past
   failing gates and appends an audit line to `.harness/exceptions.log`. It
   bypasses `cycle_done`'s own gate check only — it does not disable
-  `recheck_plan` running in CI or the pre-commit hook. **Session leash
-  has no per-session bypass in v1**: a user who really needs two sessions
-  on the primary checkout must remove the `SessionStart` / `PreToolUse`
-  entries from `.claude/settings.json`, which is a visible git change.
+  `recheck_plan` running in CI or the pre-commit hook. **Worktree leash:**
+  `python -m scripts.harness.allow_main_write "<reason>"` authorizes a single
+  main-tree write and logs it to `.harness/exceptions.log` (same pattern as
+  `cycle_done --force`).
 
 ## Validate the harness
 
