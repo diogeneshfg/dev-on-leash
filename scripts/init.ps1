@@ -168,6 +168,18 @@ if (Test-Path -LiteralPath $DstHook) {
 }
 
 # ---------------------------------------------------------------------------
+# 7. Stamp .harness/leash.json so /leash-update can detect staleness later
+# ---------------------------------------------------------------------------
+$UpdateScript = Join-Path $PluginRoot 'scripts\leash_update.py'
+try {
+    python $UpdateScript $Target --init-manifest | Out-Null
+    Write-Host 'Created: .harness/leash.json'
+    $Created.Add('.harness/leash.json')
+} catch {
+    Write-Warning 'Could not stamp .harness/leash.json (python missing?) - /leash-update will still work.'
+}
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 Write-Host ''
