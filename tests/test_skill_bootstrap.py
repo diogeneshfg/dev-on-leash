@@ -50,3 +50,15 @@ def test_bootstrap_documents_branches_config():
     assert ".harness/branches.yaml" in text
     assert "{{BASE_BRANCH}}" in text
     assert "long_lived" in text
+
+
+def test_bootstrap_documents_antagonist_critics_opt_in():
+    root = Path(__file__).resolve().parents[1]
+    text = (root / "skills" / "bootstrap-dev-leash" / "SKILL.md").read_text(
+        encoding="utf-8")
+    assert "critics.json" in text
+    assert "OPTIONAL:ANTAGONIST_CRITICS" in text
+    assert "opus" in text and "fable" in text
+    # Empty model selection must be treated as opting out (exact phrase
+    # from the skill — a bare "no" would match all over the file).
+    assert "zero models selected is treated as answering" in text.lower()

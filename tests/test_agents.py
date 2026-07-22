@@ -17,3 +17,14 @@ def test_architecture_extractor_definition():
     assert fm["name"] == "architecture-extractor"
     assert set(fm["tools"]) == {"Read", "Glob", "Grep"}
     assert "extract" in fm["description"].lower()
+
+
+def test_antagonist_critic_definition():
+    path = ROOT / "agents" / "antagonist-critic.md"
+    fm = _frontmatter(path)
+    assert fm["name"] == "antagonist-critic"
+    assert set(fm["tools"]) == {"Read", "Grep", "Glob"}
+    assert "refute" in fm["description"].lower()
+    body = path.read_text(encoding="utf-8").lower()
+    assert "severity" in body
+    assert "do not praise" in body or "must not praise" in body

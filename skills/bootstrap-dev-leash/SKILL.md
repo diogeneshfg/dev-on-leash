@@ -50,6 +50,7 @@ Collect:
 | 11 | Coverage targets | free-text | `{{COVERAGE_TARGETS}}` |
 | 12 | Parallel-work worktree layout? | `AskUserQuestion` (yes / no) | keep or drop the `.worktrees/` gitignore patch (Step 3c) |
 | 13 | Long-lived branches besides main? (dev/qa/homol/prod) | AskUserQuestion (yes / no) + free-text follow-up | {{BASE_BRANCH}} + .harness/branches.yaml (Step 3d) |
+| 14 | Antagonist critics on specs/plans? | `AskUserQuestion` (yes / no) | keep or drop `OPTIONAL:ANTAGONIST_CRITICS`; write or skip `.harness/critics.json` (Step 3e) |
 
 Notes on specific items:
 
@@ -71,6 +72,19 @@ Notes on specific items:
   (e.g. `dev`). `{{BASE_BRANCH}}` renders as the chosen base. This never
   weakens branch discipline — the long-lived branches become *protected*
   (no direct work on them), exactly like main/master.
+- **Antagonist critics (item 14):** if yes, ask a follow-up `AskUserQuestion`
+  (multiSelect) for which top-tier models to use as critics — current list:
+  `opus`, `fable` — defaulting to both selected.
+  Zero models selected is treated as answering "no" to item 14. If yes: keep the
+  `OPTIONAL:ANTAGONIST_CRITICS` block in AGENTS.md.tmpl and write
+  `.harness/critics.json` in Step 3e. If no: drop the block and write no
+  config file. The `critic_reminder` PostToolUse hook is always present in
+  the rendered settings.json and is inert without the config file, so this
+  choice never touches settings.json. Maintenance note: extend the model
+  list here when new top-tier models ship; there is no automatic tier
+  discovery. Caveat to relay to the user: if their sessions run on the same
+  model as a critic, the independence benefit shrinks to fresh-context
+  adversarial framing.
 
 ## Step 3 — Render the project-specific files
 
@@ -100,10 +114,17 @@ The optional blocks are delimited in `AGENTS.md.tmpl` by HTML-comment markers:
 <!-- OPTIONAL:UI_RULES -->
 ...
 <!-- /OPTIONAL:UI_RULES -->
+
+<!-- OPTIONAL:ANTAGONIST_CRITICS -->
+...
+<!-- /OPTIONAL:ANTAGONIST_CRITICS -->
 ```
 
 - If the user answered **yes** to a concern: keep the block's body, substitute its placeholder, and **delete the two marker comment lines** so they do not appear in the rendered file.
 - If the user answered **no**: delete the **entire block** including both marker lines and everything between them.
+- `OPTIONAL:ANTAGONIST_CRITICS` follows the same keep/drop rule, driven by
+  interview item 14. Keeping it has no placeholder to substitute; it is
+  paired with writing `.harness/critics.json` in Step 3e.
 
 `CLAUDE.md.tmpl` and `settings.json.tmpl` have no optional blocks.
 
@@ -115,6 +136,13 @@ from `templates/settings.json.tmpl`, which **no longer registers a
 old session leash automatically. If settings.json is merged rather than
 overwritten, manually remove any existing `"SessionStart"` entry — it is
 superseded by the `PreToolUse` worktree gate and should not remain.
+
+Re-running bootstrap also delivers newly added harness files: the init
+script copies `scripts/harness/` per file, add-only (existing files are
+never overwritten), so an older install gains `critic_reminder.py` on
+re-bootstrap, and the re-rendered settings.json registers its PostToolUse
+hook. Offer interview item 14 (antagonist critics) to migrating projects
+too.
 
 ### Writing — apply the no-overwrite constraint
 
@@ -196,6 +224,19 @@ long_lived: [<the declared branches>]
 Do NOT overwrite an existing `branches.yaml` — show a diff and confirm,
 like the Step 3 discipline files. The init script (Step 4) never touches
 this file.
+
+## Step 3e — Write the critics config (item 14 only)
+
+If the user opted in to antagonist critics, write `.harness/critics.json`
+with the models they selected:
+
+    {"models": ["opus", "fable"]}
+
+Create `.harness/` if it does not exist. This file is committed project
+configuration (do NOT add it to `.gitignore`) and is the feature's single
+source of truth: deleting it disables the critics entirely; editing the
+`models` list changes which critics run. If the user declined item 14,
+write nothing.
 
 ## Step 4 — Copy the project-agnostic layer
 

@@ -60,3 +60,9 @@ def test_readme_documents_multi_branch_config():
     assert ".harness/branches.yaml" in text
     assert "merge_target" in text
     assert "--base" in text
+
+
+def test_readme_documents_antagonist_critics():
+    text = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert "antagonist" in text.lower()
+    assert ".harness/critics.json" in text

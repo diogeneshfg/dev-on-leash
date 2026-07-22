@@ -52,7 +52,7 @@
 **Interfaces:**
 - Produces: `is_spec_or_plan(path: Path) -> bool`; `load_models(config_path: Path) -> tuple[list[str] | None, str | None]` (returns `(models, warning)`); `build_context(target: Path, models: list[str]) -> str`; `find_config(start: Path) -> Path | None`; `main() -> int`. Module runnable as `python -m scripts.harness.critic_reminder`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/harness/test_critic_reminder.py`:
 
@@ -430,7 +430,7 @@ acceptance: null
 - Consumes: `critic_reminder.py` existing in `scripts/harness/` (Task 1).
 - Produces: re-running init on a target with an existing `scripts/harness/` copies **missing** files (e.g. the new hook) and never overwrites existing ones.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Append to `tests/test_init.py`:
 
@@ -578,7 +578,7 @@ acceptance: null
 **Interfaces:**
 - Produces: plugin agent named `antagonist-critic` (tools: Read, Grep, Glob) that the AGENTS.md protocol (Task 4) dispatches with a per-model override.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `tests/test_agents.py`:
 
@@ -670,7 +670,7 @@ acceptance: null
 - Consumes: `antagonist-critic` agent name (Task 3); `python -m scripts.harness.critic_reminder` entrypoint (Task 1).
 - Produces: `<!-- OPTIONAL:ANTAGONIST_CRITICS -->` markers consumed by bootstrap (Task 5); an unconditional `PostToolUse` hook entry in the settings template.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 First ensure `import json` is present in the import block at the top of `tests/test_templates.py` (add it if missing). Then append (follow the file's existing read-the-template-as-text pattern):
 
@@ -822,7 +822,7 @@ acceptance: null
 **Interfaces:**
 - Consumes: `OPTIONAL:ANTAGONIST_CRITICS` markers (Task 4); `.harness/critics.json` shape `{"models": [...]}` (Task 1's `load_models`).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `tests/test_skill_bootstrap.py`. NOTE: this file defines **no `ROOT` constant** (it reads via a relative `SKILL_PATH`) — the test below resolves its own path and must be pasted exactly as written:
 
@@ -934,7 +934,7 @@ acceptance: null
 - Modify: `README.md`
 - Test: `tests/test_docs.py`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `tests/test_docs.py` (follow its existing README-assertion pattern):
 
@@ -1006,7 +1006,7 @@ acceptance: null
 - Create: `.harness/critics.json`
 - Create: `.claude/settings.json` (verified: this repo's `.claude/` is currently empty — there is no existing file to merge with)
 
-- [ ] **Step 1: Write the config**
+- [x] **Step 1: Write the config**
 
 Create `.harness/critics.json`:
 

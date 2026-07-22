@@ -164,6 +164,26 @@ long_lived: [dev, qa, homol, prod]  # protected, like main/master
 - Every `long_lived` branch is protected exactly like `main`: no direct
   work, no worktree removal while checked out on one.
 
+## Antagonist critics on specs and plans (opt-in)
+
+Bootstrap can enable an adversarial review step: at the end of every spec
+and every plan creation — before the document reaches you for review —
+the session agent dispatches one `antagonist-critic` subagent per model
+listed in `.harness/critics.json` (e.g. Opus and Fable), each prompted
+solely to refute the document. The agent fixes what it can and presents
+you the refined document plus a criticism → response summary.
+
+- **Configure:** answer yes to the bootstrap interview's antagonist-critics
+  question and pick the critic models, or hand-write
+  `.harness/critics.json`: `{"models": ["opus", "fable"]}`.
+- **Disable:** delete `.harness/critics.json` — it is the single source of
+  truth; the `critic_reminder` hook and the AGENTS.md protocol both defer
+  to it.
+- **Honest scope:** the hook mechanically injects a reminder after every
+  spec/plan write; running the critics is protocol (one round per
+  presented version), not a hard gate. If every critic dispatch fails, the
+  agent must tell you no adversarial review ran.
+
 ## Updating a bootstrapped project
 
 Skills and agents update with the plugin automatically; the *copied*
