@@ -110,3 +110,15 @@ def test_agents_template_documents_worktree_start_path():
 def test_claude_template_mentions_start_work():
     text = (ROOT / "templates" / "CLAUDE.md.tmpl").read_text(encoding="utf-8")
     assert "leash-start-work" in text
+
+
+def test_templates_use_base_branch_placeholder():
+    # NB: this file imports `pathlib` and defines ROOT — no bare Path here.
+    agents = (ROOT / "templates" / "AGENTS.md.tmpl").read_text(encoding="utf-8")
+    claude = (ROOT / "templates" / "CLAUDE.md.tmpl").read_text(encoding="utf-8")
+    assert "{{BASE_BRANCH}}" in agents
+    assert "{{BASE_BRANCH}}" in claude
+    # the raw hardcoded worktree command must be gone — the backend script
+    # is the single path
+    assert "git worktree add .worktrees/<slug> -b <type>/<slug> main" not in agents
+    assert "python -m scripts.harness.start_work" in agents

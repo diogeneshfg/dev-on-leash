@@ -49,6 +49,7 @@ Collect:
 | 10 | Design-system / UI concern? | `AskUserQuestion` (yes / no) | keep or drop `OPTIONAL:UI_RULES` |
 | 11 | Coverage targets | free-text | `{{COVERAGE_TARGETS}}` |
 | 12 | Parallel-work worktree layout? | `AskUserQuestion` (yes / no) | keep or drop the `.worktrees/` gitignore patch (Step 3c) |
+| 13 | Long-lived branches besides main? (dev/qa/homol/prod) | AskUserQuestion (yes / no) + free-text follow-up | {{BASE_BRANCH}} + .harness/branches.yaml (Step 3d) |
 
 Notes on specific items:
 
@@ -62,6 +63,14 @@ Notes on specific items:
   still works but will warn the directory is not ignored. This is opt-in and
   never weakens branch discipline; it only makes N mandatory branches livable
   at once.
+- **Long-lived branches (item 13):** if no, `{{BASE_BRANCH}}` renders as
+  `main` (or `master` — match the repo's default branch) and no
+  `branches.yaml` is written. If yes, follow up in free text for: the list
+  of long-lived branches, the default base for new work (e.g. `prod` when
+  production trails dev), and the merge target where work branches land
+  (e.g. `dev`). `{{BASE_BRANCH}}` renders as the chosen base. This never
+  weakens branch discipline — the long-lived branches become *protected*
+  (no direct work on them), exactly like main/master.
 
 ## Step 3 — Render the project-specific files
 
@@ -69,8 +78,8 @@ Read each `.tmpl`, substitute placeholders, handle optional blocks, write the re
 
 ### Placeholders per template (substitute exactly these)
 
-- **`CLAUDE.md.tmpl`** → `CLAUDE.md`: `{{PROJECT_NAME}}`, `{{STACK_SUMMARY}}`, `{{COMMON_COMMANDS}}`.
-- **`AGENTS.md.tmpl`** → `AGENTS.md`: `{{PROJECT_NAME}}` (appears multiple times), `{{STACK_DESCRIPTION}}`, `{{TEST_COMMANDS}}`, `{{COVERAGE_TARGETS}}`, `{{PACKAGE_LAYOUT}}`, and `{{DOMAIN_RULES}}` / `{{UI_RULES}}` (only if their optional block is kept).
+- **`CLAUDE.md.tmpl`** → `CLAUDE.md`: `{{PROJECT_NAME}}`, `{{STACK_SUMMARY}}`, `{{COMMON_COMMANDS}}`, `{{BASE_BRANCH}}`.
+- **`AGENTS.md.tmpl`** → `AGENTS.md`: `{{PROJECT_NAME}}` (appears multiple times), `{{STACK_DESCRIPTION}}`, `{{TEST_COMMANDS}}`, `{{COVERAGE_TARGETS}}`, `{{PACKAGE_LAYOUT}}`, `{{BASE_BRANCH}}` (appears multiple times), and `{{DOMAIN_RULES}}` / `{{UI_RULES}}` (only if their optional block is kept).
 - **`settings.json.tmpl`** → `.claude/settings.json`: `{{TEST_RUNNER_COMMANDS}}`, `{{LINT_COMMANDS}}`, `{{TYPECHECK_COMMANDS}}`, `{{BUILD_COMMANDS}}`.
 
 Substitute **every** `{{...}}` occurrence — after rendering, no `{{` may remain in any output file. If an interview answer left a placeholder with no value, ask the user rather than emitting an empty token.
@@ -168,6 +177,22 @@ This is the proactive parallel-work directory created by `leash-start-work`;
 ignoring it keeps worktree checkouts out of commits. Idempotent — an exact
 match anywhere in the file counts as present; never duplicate. If the user
 declined item 12, make no `.worktrees/` change.
+
+## Step 3d — Write the branches config (only if item 13 = yes)
+
+Write `.harness/branches.yaml` by hand (same pattern as Step 3b's
+`.harness/gates` — no template file):
+
+```yaml
+# dev-on-leash: multi-branch config. See README "Multi-branch projects".
+base: <default base from the interview>
+merge_target: <merge target from the interview>
+long_lived: [<the declared branches>]
+```
+
+Do NOT overwrite an existing `branches.yaml` — show a diff and confirm,
+like the Step 3 discipline files. The init script (Step 4) never touches
+this file.
 
 ## Step 4 — Copy the project-agnostic layer
 

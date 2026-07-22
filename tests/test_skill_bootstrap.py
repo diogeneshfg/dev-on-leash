@@ -42,3 +42,10 @@ def test_skill_worktrees_optin_is_conditional():
     # It is opt-in: the skill must frame it as a yes/no choice, not an
     # unconditional patch.
     assert "opt-in" in text or "if the user answered" in text or "if yes" in text
+
+
+def test_bootstrap_documents_branches_config():
+    text = Path("skills/bootstrap-dev-leash/SKILL.md").read_text(encoding="utf-8")
+    assert ".harness/branches.yaml" in text
+    assert "{{BASE_BRANCH}}" in text
+    assert "long_lived" in text
