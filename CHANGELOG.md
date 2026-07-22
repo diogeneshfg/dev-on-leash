@@ -8,6 +8,16 @@ versioned `## [X.Y.Z] — <date>` heading (see `docs/RELEASING.md`), so
 `[Unreleased]` only ever holds work that has not shipped in a release.
 
 ## [Unreleased]
+### Added
+- **`/leash-update` + automatic staleness detection.** Consumer projects
+  now carry `.harness/leash.json` (version + file-hash manifest, stamped
+  by init). A plugin-level SessionStart hook (`scripts/update_check.py`)
+  warns when the project's copied layer is older than the installed
+  plugin; `/leash-update` (`scripts/leash_update.py`) applies the update:
+  intact files overwritten, locally edited files refused with a diff
+  (`--force <relpath>` per file), missing hook wiring merged additively
+  into `.claude/settings.json`. `CLAUDE.md`/`AGENTS.md` are never touched.
+
 ### Fixed
 - **Sessions no longer get lost inside worktrees.** The leash flow re-rooted
   Claude Code sessions into `.worktrees/<slug>` (via `EnterWorktree` /
