@@ -4,7 +4,7 @@
 # Usage: sh scripts/init.sh <target-repo-path>
 #
 # Copies:
-#   scripts/harness/       -> <target>/scripts/harness/   (skipped if already exists)
+#   scripts/harness/       -> <target>/scripts/harness/   (per file, add-only)
 #   templates/task-schema.md  -> <target>/docs/task-schema.md
 #   templates/plan-template.md -> <target>/docs/plan-template.md
 #   Creates empty            <target>/docs/plans/

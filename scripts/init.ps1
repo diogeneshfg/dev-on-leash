@@ -7,14 +7,14 @@
     Usage: .\scripts\init.ps1 <target-repo-path>
 
     Copies:
-      scripts/harness/           -> <target>/scripts/harness/   (skipped if already exists)
+      scripts/harness/           -> <target>/scripts/harness/   (per file, add-only)
       templates/task-schema.md   -> <target>/docs/task-schema.md
       templates/plan-template.md -> <target>/docs/plan-template.md
       Creates empty               <target>/docs/plans/
 
     Does NOT touch CLAUDE.md or AGENTS.md -- those are bootstrap-skill's job.
-    Idempotent: re-running on an already-initialized repo prints warnings and
-    skips, never clobbers existing files.
+    Idempotent: re-running on an already-initialized repo adds any missing
+    files and never clobbers existing ones.
 
 .PARAMETER TargetPath
     Path to the target repository root.
