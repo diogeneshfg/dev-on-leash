@@ -5,7 +5,8 @@ import json
 from pathlib import Path
 
 from scripts.leash_update import (
-    decide_file, load_manifest, managed_pairs, sha256_file, write_manifest,
+    REQUIRED_HOOKS, decide_file, load_manifest, managed_pairs, merge_hooks,
+    sha256_file, write_manifest,
 )
 
 
@@ -68,6 +69,36 @@ def test_manifest_roundtrip(tmp_path: Path):
 
 def test_load_manifest_missing_returns_empty(tmp_path: Path):
     assert load_manifest(tmp_path) == {}
+
+
+def test_merge_adds_missing_sessionstart_hook():
+    settings = {"hooks": {"PreToolUse": [{
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [{"type": "command",
+                   "command": "python -m scripts.harness.session_gate"}]}]}}
+    merged, added = merge_hooks(settings)
+    assert added == ["python -m scripts.harness.session_root_guard"]
+    ss = merged["hooks"]["SessionStart"]
+    assert ss[0]["hooks"][0]["command"] == "python -m scripts.harness.session_root_guard"
+    assert "matcher" not in ss[0]
+
+
+def test_merge_is_idempotent_and_preserves_user_entries():
+    user_hook = {"matcher": "Bash", "hooks": [{"type": "command", "command": "echo hi"}]}
+    settings = {"permissions": {"allow": ["Bash(ls)"]},
+                "hooks": {"PreToolUse": [user_hook]}}
+    once, _ = merge_hooks(settings)
+    twice, added = merge_hooks(once)
+    assert added == []
+    assert twice == once
+    assert user_hook in twice["hooks"]["PreToolUse"]
+    assert twice["permissions"] == {"allow": ["Bash(ls)"]}
+
+
+def test_required_hooks_agree_with_settings_template():
+    text = Path("templates/settings.json.tmpl").read_text(encoding="utf-8")
+    for _event, _matcher, command in REQUIRED_HOOKS:
+        assert command in text, f"template missing required hook: {command}"
 
 
 def test_managed_pairs_covers_harness_and_templates():

@@ -5,12 +5,19 @@ See docs/superpowers/specs/2026-07-22-leash-update-design.md.
 """
 from __future__ import annotations
 
+import copy
 import difflib
 import hashlib
 import json
 from pathlib import Path
 
 MANIFEST_REL = Path(".harness") / "leash.json"
+
+REQUIRED_HOOKS: list[tuple[str, str | None, str]] = [
+    ("SessionStart", None, "python -m scripts.harness.session_root_guard"),
+    ("PreToolUse", "Edit|Write|MultiEdit|NotebookEdit",
+     "python -m scripts.harness.session_gate"),
+]
 
 TEMPLATE_PAIRS = [
     ("templates/task-schema.md", "docs/task-schema.md"),
@@ -48,6 +55,30 @@ def decide_file(*, src: Path, dst: Path, manifest_hash: str | None,
         src.read_text(encoding="utf-8", errors="replace").splitlines(keepends=True),
         fromfile=f"local/{dst.name}", tofile=f"plugin/{src.name}"))
     return "refused", diff
+
+
+def merge_hooks(settings: dict) -> tuple[dict, list[str]]:
+    """Additive-only: append REQUIRED_HOOKS entries missing from settings.
+
+    Matched by command string; never removes, reorders, or rewrites user
+    entries or permissions."""
+    merged = copy.deepcopy(settings)
+    hooks = merged.setdefault("hooks", {})
+    added: list[str] = []
+    for event, matcher, command in REQUIRED_HOOKS:
+        entries = hooks.setdefault(event, [])
+        present = any(
+            h.get("command") == command
+            for entry in entries if isinstance(entry, dict)
+            for h in entry.get("hooks", []) if isinstance(h, dict))
+        if present:
+            continue
+        entry: dict = {"hooks": [{"type": "command", "command": command}]}
+        if matcher is not None:
+            entry = {"matcher": matcher, **entry}
+        entries.append(entry)
+        added.append(command)
+    return merged, added
 
 
 def load_manifest(target: Path) -> dict:
