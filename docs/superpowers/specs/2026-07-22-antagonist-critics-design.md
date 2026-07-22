@@ -107,9 +107,12 @@ Behavior:
   user for review, it must dispatch one antagonist critic per configured model
   per the AGENTS.md protocol — one round per presented version; if the
   critics already ran for this version, do not re-dispatch.
-- The config is discovered relative to the git toplevel of the file's repo
-  (worktrees resolve to their own checkout, which shares the committed
-  `.harness/critics.json`).
+- The config is discovered by walking the written file's ancestors for
+  `.harness/critics.json`, bounded at the first ancestor holding a `.git`
+  entry (dir or worktree-file) — equivalent to the repo toplevel without
+  invoking git, and immune to a stray `~/.harness` above the repo. Linked
+  worktrees resolve to their own checkout, which shares the committed
+  config.
 - Malformed `critics.json` or empty `models`: treat as off, but emit a
   one-line warning in the context so it gets fixed. Fail-open is accepted: a
   PostToolUse reminder cannot block by design, and the warning is the best
