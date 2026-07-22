@@ -207,7 +207,7 @@ def main(argv: list[str]) -> int:
     def step(n: int, label: str, ok: bool, detail: str = "") -> None:
         nonlocal failed
         mark = "OK" if ok else "FAIL"
-        line = f"[{n}/10] {label:<41} {mark}"
+        line = f"[{n}/11] {label:<41} {mark}"
         if detail:
             line += f"  {detail}"
         print(line)
@@ -223,8 +223,9 @@ def main(argv: list[str]) -> int:
             init_cmd = ["sh", str(PLUGIN_ROOT / "scripts" / "init.sh"), str(repo)]
         rc, _ = _run(init_cmd)
         ok = (rc == 0 and (harness / "run_task.py").exists()
-              and (repo / "scripts" / "__init__.py").exists())
-        step(1, "init -> agnostic layer installed", ok)
+              and (repo / "scripts" / "__init__.py").exists()
+              and (repo / ".harness" / "leash.json").exists())
+        step(1, "init -> agnostic layer installed + stamped", ok)
 
         # fixture files
         (repo / "pyproject.toml").write_text(PYPROJECT, encoding="utf-8")
@@ -301,6 +302,12 @@ def main(argv: list[str]) -> int:
             step(10, "harness hooks: subprocess invocation", True)
         except Exception as exc:  # noqa: BLE001
             step(10, "harness hooks: subprocess invocation", False, str(exc))
+
+        # 11 — leash-update: stale intact files update, local edits refused
+        rc = subprocess.call(
+            [sys.executable,
+             str(PLUGIN_ROOT / "scripts" / "dogfood_leash_update.py")])
+        step(11, "leash-update: stale->update, edit->refuse", rc == 0)
 
     finally:
         elapsed = time.time() - t0
