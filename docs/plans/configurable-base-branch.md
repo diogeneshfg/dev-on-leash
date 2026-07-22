@@ -983,10 +983,10 @@ def _audit_delete(repo_root: Path, *, branch: str, sha: str, proven: str) -> Non
         proven = prove_merged(repo_root, branch, cfg)
         if proven is None:
             raise FinishWorkError(
-                f"branch {branch} is not an ancestor of {cfg.merge_target} "
-                "(local or remote-tracking); merge it first or pass "
-                "--keep-branch. Note: squash/rebase merges are not provable "
-                "— use --keep-branch and delete manually."
+                f"branch {branch} is unmerged — not an ancestor of "
+                f"{cfg.merge_target} (local or remote-tracking); merge it "
+                "first or pass --keep-branch. Note: squash/rebase merges "
+                "are not provable — use --keep-branch and delete manually."
             )
     # Prove everything BEFORE the first destructive step so a failure can
     # never leave "worktree gone, branch orphaned".
@@ -1005,7 +1005,7 @@ def _audit_delete(repo_root: Path, *, branch: str, sha: str, proven: str) -> Non
 - [ ] **Step 4: Run the full finish_work suite**
 
 Run: `python -m pytest tests/harness/test_finish_work.py -x -q`
-Expected: PASS — all pre-existing tests (no-config behavior unchanged: `merge_target` defaults to `main`, and `test_removes_merged_clean_worktree`'s trivially-merged branch is an ancestor of main) plus the four new ones.
+Expected: PASS — all pre-existing tests (no-config behavior unchanged: `merge_target` defaults to `main`, `test_removes_merged_clean_worktree`'s trivially-merged branch is an ancestor of main, and `test_refuses_unmerged_branch`'s `match="unmerged"` still matches the new "is unmerged — not an ancestor of" message) plus the four new ones.
 
 - [ ] **Step 5: Add `.harness/finish_audit.log` to this repo's `.gitignore`** (runtime audit file, same class as `.harness/exceptions.log`) — append under the existing `# dev-on-leash` heading:
 
@@ -1045,18 +1045,16 @@ acceptance: null
 
 - [ ] **Step 1: Add the failing test**
 
-Append to `tests/harness/test_cycle_done_advise.py` (reuse that file's existing repo/worktree fixtures-helpers; if it has none matching, use the same `_init_repo`/`_add_worktree` helpers as `tests/harness/test_finish_work.py`):
+Append to `tests/harness/test_cycle_done_advise.py` — the file already defines `_init_git_repo(path)` and `_add_worktree(repo, rel_dir, branch)`; reuse them exactly:
 
 ```python
 def test_advises_branch_merged_into_declared_target_not_head(tmp_path: Path):
     """Advisory must agree with finish_work: merged into dev while HEAD
     is on main still earns a clean-up reminder."""
-    repo = tmp_path / "r"
-    _init_repo(repo)
+    repo = tmp_path / "p"
+    _init_git_repo(repo)
     subprocess.check_call(["git", "branch", "dev"], cwd=repo)
-    wt = repo / ".worktrees" / "x"
-    subprocess.check_call(
-        ["git", "worktree", "add", str(wt), "-b", "feat/x", "main"], cwd=repo)
+    wt = _add_worktree(repo, ".worktrees/x", "feat/x")
     (wt / "f.txt").write_text("x\n", encoding="utf-8")
     subprocess.check_call(["git", "add", "."], cwd=wt)
     subprocess.check_call(["git", "commit", "-q", "-m", "wip"], cwd=wt)
@@ -1065,12 +1063,12 @@ def test_advises_branch_merged_into_declared_target_not_head(tmp_path: Path):
     (repo / ".harness" / "branches.yaml").write_text(
         "merge_target: dev\nlong_lived: [dev]\n", encoding="utf-8")
     reminders = advise_merged_worktrees(repo_root=repo)
-    assert any("feat/x" in r for r in reminders)
+    assert any("feat/x" in r for r in reminders), reminders
 
 
 def test_advisory_quiet_on_malformed_config(tmp_path: Path):
-    repo = tmp_path / "r"
-    _init_repo(repo)
+    repo = tmp_path / "p"
+    _init_git_repo(repo)
     (repo / ".harness").mkdir(exist_ok=True)
     (repo / ".harness" / "branches.yaml").write_text("bogus: 1\n", encoding="utf-8")
     # advisory never raises — enforcement (finish_work) surfaces the error
@@ -1276,15 +1274,15 @@ Replace the `## Constraints` section body with:
   `--keep-branch` and delete the branch manually once you are sure.
 ```
 
-- [ ] **Step 5: Run the docs/skills suites**
+- [ ] **Step 5: Run the skills suite**
 
-Run: `python -m pytest tests/test_skill_start_work.py tests/test_docs.py -x -q`
-Expected: PASS. If `tests/test_docs.py` asserts on the old skill wording, update those assertions to the new text in the same commit.
+Run: `python -m pytest tests/test_skill_start_work.py -x -q`
+Expected: PASS. (`tests/test_docs.py` only asserts README strings, not skill wording — it is untouched here and belongs to Task 7.)
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add skills/leash-start-work/SKILL.md skills/leash-finish-work/SKILL.md tests/test_skill_start_work.py tests/test_docs.py
+git add skills/leash-start-work/SKILL.md skills/leash-finish-work/SKILL.md tests/test_skill_start_work.py
 git commit -m "docs(skills): start/finish-work skills wrap the mechanical backends"
 ```
 
@@ -1295,7 +1293,7 @@ touches:
   - skills/leash-finish-work/SKILL.md
   - tests/test_skill_start_work.py
 depends: [T02, T03]
-verify: python -m pytest tests/test_skill_start_work.py tests/test_docs.py -x -q
+verify: python -m pytest tests/test_skill_start_work.py -x -q
 acceptance: null
 -->
 
@@ -1317,8 +1315,9 @@ Append to `tests/test_templates.py`:
 
 ```python
 def test_templates_use_base_branch_placeholder():
-    agents = Path("templates/AGENTS.md.tmpl").read_text(encoding="utf-8")
-    claude = Path("templates/CLAUDE.md.tmpl").read_text(encoding="utf-8")
+    # NB: this file imports `pathlib` and defines ROOT — no bare Path here.
+    agents = (ROOT / "templates" / "AGENTS.md.tmpl").read_text(encoding="utf-8")
+    claude = (ROOT / "templates" / "CLAUDE.md.tmpl").read_text(encoding="utf-8")
     assert "{{BASE_BRANCH}}" in agents
     assert "{{BASE_BRANCH}}" in claude
     # the raw hardcoded worktree command must be gone — the backend script
@@ -1445,7 +1444,8 @@ Append to `tests/test_docs.py`:
 
 ```python
 def test_readme_documents_multi_branch_config():
-    text = Path("README.md").read_text(encoding="utf-8")
+    # NB: follow this file's convention — `pathlib` + ROOT, no bare Path.
+    text = (ROOT / "README.md").read_text(encoding="utf-8")
     assert ".harness/branches.yaml" in text
     assert "merge_target" in text
     assert "--base" in text
