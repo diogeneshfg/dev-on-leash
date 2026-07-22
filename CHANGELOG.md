@@ -8,6 +8,18 @@ versioned `## [X.Y.Z] — <date>` heading (see `docs/RELEASING.md`), so
 `[Unreleased]` only ever holds work that has not shipped in a release.
 
 ## [Unreleased]
+### Fixed
+- **Sessions no longer get lost inside worktrees.** The leash flow re-rooted
+  Claude Code sessions into `.worktrees/<slug>` (via `EnterWorktree` /
+  opening the worktree as a workspace); session history is keyed to the
+  session root, so it was orphaned when `/leash-finish-work` removed the
+  worktree. `/leash-start-work` now creates the worktree with plain
+  `git worktree add` and keeps the session rooted in the main checkout —
+  the write gate already allows edits into linked worktrees from there. A
+  new `SessionStart` hook (`scripts/harness/session_root_guard.py`, wired
+  in `templates/settings.json.tmpl`) warns whenever a session is rooted
+  inside a linked worktree. Re-bootstrap existing projects to pick up the
+  hook.
 
 ## [0.5.0] — 2026-06-19
 ### Changed

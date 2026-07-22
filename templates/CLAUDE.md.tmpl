@@ -48,11 +48,17 @@ merge with `git worktree remove .worktrees/<slug>`.
 
 The harness installs a **worktree leash**: a `PreToolUse` gate denies any
 `Edit`/`Write`/`MultiEdit`/`NotebookEdit` whose target is in the **main
-worktree**. All work happens in a linked worktree — run `/leash-start-work`
-to create one (`.worktrees/<slug>` on `<type>/<slug>` from `main`), then
-edit there. This makes concurrent sessions safe by construction: each works
-in its own worktree, nobody edits the shared main tree. Clean up with
-`/leash-finish-work`.
+worktree**. All edits target files in a linked worktree — run
+`/leash-start-work` to create one (`.worktrees/<slug>` on `<type>/<slug>`
+from `main`), then edit the files there. This makes concurrent sessions safe
+by construction: each works in its own worktree, nobody edits the shared
+main tree. Clean up with `/leash-finish-work`.
+
+The session itself **stays rooted in the main checkout** — never start or
+move a Claude Code session inside `.worktrees/<slug>` (session history is
+keyed to the session root and is lost when the worktree is removed). The
+`session_root_guard` SessionStart hook warns if a session is rooted in a
+linked worktree.
 
 For a one-off direct edit to the main tree, authorize a single write:
 `python -m scripts.harness.allow_main_write "<reason>"` (logged to
