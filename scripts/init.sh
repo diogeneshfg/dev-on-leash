@@ -69,19 +69,32 @@ SKIPPED=""
 CREATED=""
 
 # ---------------------------------------------------------------------------
-# 1. Copy scripts/harness/ — skip (do not clobber) if already present
+# 1. Copy scripts/harness/ — per file, add-only: copy each file that does
+#    not exist at the destination; NEVER overwrite an existing file. This
+#    lets re-bootstrap deliver newly added harness scripts without
+#    clobbering local modifications.
 # ---------------------------------------------------------------------------
-if [ -e "$DST_HARNESS" ]; then
-    printf 'WARNING: %s already exists — skipping harness copy to avoid clobbering.\n' "$DST_HARNESS"
-    SKIPPED="$SKIPPED scripts/harness/"
-else
-    mkdir -p "$TARGET/scripts"
-    cp -r "$SRC_HARNESS" "$TARGET/scripts/"
-    # Remove Python bytecode caches that may have been copied from the source.
-    find "$DST_HARNESS" -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
-    find "$DST_HARNESS" -name '*.pyc' -delete 2>/dev/null || true
-    printf 'Copied:  scripts/harness/\n'
-    COPIED="$COPIED scripts/harness/"
+mkdir -p "$DST_HARNESS"
+HARNESS_ADDED=0
+HARNESS_KEPT=0
+for f in "$SRC_HARNESS"/*; do
+    base="$(basename "$f")"
+    case "$base" in
+        __pycache__|*.pyc) continue ;;
+    esac
+    [ -f "$f" ] || continue
+    if [ -e "$DST_HARNESS/$base" ]; then
+        HARNESS_KEPT=$((HARNESS_KEPT + 1))
+    else
+        cp "$f" "$DST_HARNESS/$base"
+        HARNESS_ADDED=$((HARNESS_ADDED + 1))
+        COPIED="$COPIED scripts/harness/$base"
+    fi
+done
+printf 'Harness: %s file(s) added, %s existing file(s) left untouched\n' \
+    "$HARNESS_ADDED" "$HARNESS_KEPT"
+if [ "$HARNESS_KEPT" -gt 0 ]; then
+    SKIPPED="$SKIPPED scripts/harness/(existing)"
 fi
 
 # ---------------------------------------------------------------------------

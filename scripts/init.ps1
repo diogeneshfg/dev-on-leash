@@ -71,24 +71,30 @@ $Skipped = [System.Collections.Generic.List[string]]::new()
 $Created = [System.Collections.Generic.List[string]]::new()
 
 # ---------------------------------------------------------------------------
-# 1. Copy scripts/harness/ -- skip (do not clobber) if already present
+# 1. Copy scripts/harness/ -- per file, add-only: copy each file that does
+#    not exist at the destination; NEVER overwrite an existing file. This
+#    lets re-bootstrap deliver newly added harness scripts without
+#    clobbering local modifications.
 # ---------------------------------------------------------------------------
-if (Test-Path -LiteralPath $DstHarness) {
-    Write-Warning "scripts/harness/ already exists at '$DstHarness' -- skipping to avoid clobbering."
-    $Skipped.Add('scripts/harness/')
-} else {
-    $DstScriptsDir = Join-Path $Target 'scripts'
-    if (-not (Test-Path -LiteralPath $DstScriptsDir -PathType Container)) {
-        New-Item -ItemType Directory -Path $DstScriptsDir | Out-Null
+if (-not (Test-Path -LiteralPath $DstHarness -PathType Container)) {
+    New-Item -ItemType Directory -Path $DstHarness -Force | Out-Null
+}
+$HarnessAdded = 0
+$HarnessKept = 0
+foreach ($f in Get-ChildItem -LiteralPath $SrcHarness -File) {
+    if ($f.Extension -eq '.pyc') { continue }
+    $dstFile = Join-Path $DstHarness $f.Name
+    if (Test-Path -LiteralPath $dstFile) {
+        $HarnessKept++
+    } else {
+        Copy-Item -LiteralPath $f.FullName -Destination $dstFile
+        $HarnessAdded++
+        $Copied.Add("scripts/harness/$($f.Name)")
     }
-    Copy-Item -Path $SrcHarness -Destination $DstScriptsDir -Recurse
-    # Remove Python bytecode caches that may have been copied from the source.
-    Get-ChildItem -LiteralPath $DstHarness -Recurse -Filter '__pycache__' -Directory |
-        Remove-Item -Recurse -Force
-    Get-ChildItem -LiteralPath $DstHarness -Recurse -Filter '*.pyc' -File |
-        Remove-Item -Force
-    Write-Host 'Copied:  scripts/harness/'
-    $Copied.Add('scripts/harness/')
+}
+Write-Host "Harness: $HarnessAdded file(s) added, $HarnessKept existing file(s) left untouched"
+if ($HarnessKept -gt 0) {
+    $Skipped.Add('scripts/harness/(existing)')
 }
 
 # ---------------------------------------------------------------------------
