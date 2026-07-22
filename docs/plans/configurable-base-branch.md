@@ -54,7 +54,7 @@
   - `load_branch_config(repo_root: Path) -> BranchConfig`
   - `prove_merged(repo_root: Path, branch: str, cfg: BranchConfig) -> str | None` (returns the proving ref or `None`)
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/harness/test_branches.py`:
 
@@ -240,12 +240,12 @@ def test_prove_merged_unmerged_is_none(tmp_path: Path):
     assert prove_merged(repo, "feat/x", cfg) is None
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `python -m pytest tests/harness/test_branches.py -x -q`
 Expected: FAIL — `ModuleNotFoundError: No module named 'scripts.harness.branches'`
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `scripts/harness/branches.py`:
 
@@ -398,12 +398,12 @@ def prove_merged(repo_root: Path, branch: str, cfg: BranchConfig) -> str | None:
     return None
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `python -m pytest tests/harness/test_branches.py -x -q`
 Expected: PASS (all)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/harness/branches.py tests/harness/test_branches.py
@@ -432,7 +432,7 @@ acceptance: null
 - Consumes: `load_branch_config`, `BranchConfigError`, `ref_exists` from `scripts.harness.branches` (Task 1).
 - Produces: `class StartWorkError(RuntimeError)`; `start_work(*, repo_root: Path, branch: str, base_override: str | None = None, warn=...) -> Path` (returns worktree path); `detect_remote(repo_root: Path, base: str) -> str | None`; `resolve_start_point(repo_root: Path, base: str, remote: str | None, warn) -> tuple[str, bool]` (start_point, use_no_track). Runnable as `python -m scripts.harness.start_work <type>/<slug> [--base <branch>]`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `tests/harness/test_start_work.py`:
 
@@ -610,12 +610,12 @@ def test_refuses_existing_worktree_dir(tmp_path: Path):
         start_work(repo_root=repo, branch="fix/x")
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `python -m pytest tests/harness/test_start_work.py -x -q`
 Expected: FAIL — `ModuleNotFoundError: No module named 'scripts.harness.start_work'`
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `scripts/harness/start_work.py`:
 
@@ -811,12 +811,12 @@ if __name__ == "__main__":
     raise SystemExit(main(sys.argv))
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `python -m pytest tests/harness/test_start_work.py -x -q`
 Expected: PASS (all)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/harness/start_work.py tests/harness/test_start_work.py
@@ -845,7 +845,7 @@ acceptance: null
 - Consumes: `load_branch_config`, `BranchConfigError`, `prove_merged` from `scripts.harness.branches` (Task 1).
 - Produces: `finish_work(...)` keeps its exact current signature and return type (`str`, the branch). New audit file: `.harness/finish_audit.log`, one tab-separated line per deletion: `<utc-iso>\tDELETE\tbranch=<b>\tsha=<sha>\tproven=<ref>`.
 
-- [ ] **Step 1: Add the failing tests**
+- [x] **Step 1: Add the failing tests**
 
 Append to `tests/harness/test_finish_work.py`:
 
@@ -913,12 +913,12 @@ def test_malformed_branches_yaml_is_hard_error(tmp_path: Path):
         finish_work(repo_root=repo, slug="feat-x")
 ```
 
-- [ ] **Step 2: Run tests to verify the new ones fail**
+- [x] **Step 2: Run tests to verify the new ones fail**
 
 Run: `python -m pytest tests/harness/test_finish_work.py -x -q`
 Expected: FAIL on `test_merged_into_declared_target_while_head_on_main` (git `branch -d`/merge-check error or refusal), existing tests still pass up to that point.
 
-- [ ] **Step 3: Rework `finish_work.py`**
+- [x] **Step 3: Rework `finish_work.py`**
 
 In `scripts/harness/finish_work.py`:
 
@@ -1002,18 +1002,18 @@ def _audit_delete(repo_root: Path, *, branch: str, sha: str, proven: str) -> Non
     return branch
 ```
 
-- [ ] **Step 4: Run the full finish_work suite**
+- [x] **Step 4: Run the full finish_work suite**
 
 Run: `python -m pytest tests/harness/test_finish_work.py -x -q`
 Expected: PASS — all pre-existing tests (no-config behavior unchanged: `merge_target` defaults to `main`, `test_removes_merged_clean_worktree`'s trivially-merged branch is an ancestor of main, and `test_refuses_unmerged_branch`'s `match="unmerged"` still matches the new "is unmerged — not an ancestor of" message) plus the four new ones.
 
-- [ ] **Step 5: Add `.harness/finish_audit.log` to this repo's `.gitignore`** (runtime audit file, same class as `.harness/exceptions.log`) — append under the existing `# dev-on-leash` heading:
+- [x] **Step 5: Add `.harness/finish_audit.log` to this repo's `.gitignore`** (runtime audit file, same class as `.harness/exceptions.log`) — append under the existing `# dev-on-leash` heading:
 
 ```
 .harness/finish_audit.log
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add scripts/harness/finish_work.py tests/harness/test_finish_work.py .gitignore
@@ -1043,7 +1043,7 @@ acceptance: null
 - Consumes: `load_branch_config`, `BranchConfigError`, `prove_merged` from `scripts.harness.branches` (Task 1).
 - Produces: `advise_merged_worktrees(*, repo_root: Path) -> list[str]` — same signature, same reminder string format.
 
-- [ ] **Step 1: Add the failing test**
+- [x] **Step 1: Add the failing test**
 
 Append to `tests/harness/test_cycle_done_advise.py` — the file already defines `_init_git_repo(path)` and `_add_worktree(repo, rel_dir, branch)`; reuse them exactly:
 
@@ -1075,12 +1075,12 @@ def test_advisory_quiet_on_malformed_config(tmp_path: Path):
     assert advise_merged_worktrees(repo_root=repo) == []
 ```
 
-- [ ] **Step 2: Run to verify the first new test fails**
+- [x] **Step 2: Run to verify the first new test fails**
 
 Run: `python -m pytest tests/harness/test_cycle_done_advise.py -x -q`
 Expected: FAIL on `test_advises_branch_merged_into_declared_target_not_head` (bare `git branch --merged` is HEAD-relative; feat/x is not merged into main).
 
-- [ ] **Step 3: Rework `advise_merged_worktrees`**
+- [x] **Step 3: Rework `advise_merged_worktrees`**
 
 In `scripts/harness/cycle_done.py`, add the import near the top (after the `sys.path` insertion block that already exists):
 
@@ -1122,12 +1122,12 @@ with
 
 Also update the function docstring's location-filter sentence: the parenthetical about `git branch --merged` listing "merged into itself" no longer applies; replace that parenthetical with "(the primary checkout is excluded by location, and merged-ness is proven per-branch against the configured merge target via `prove_merged`)".
 
-- [ ] **Step 4: Run the advise suite**
+- [x] **Step 4: Run the advise suite**
 
 Run: `python -m pytest tests/harness/test_cycle_done_advise.py -x -q`
 Expected: PASS (existing tests unchanged — with no config, `merge_target` = main and ancestry-of-main matches the old `git branch --merged` result for these fixtures).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/harness/cycle_done.py tests/harness/test_cycle_done_advise.py
@@ -1156,7 +1156,7 @@ acceptance: null
 **Interfaces:**
 - Consumes: CLI shapes from Tasks 2-3: `python -m scripts.harness.start_work <type>/<slug> [--base <branch>]`, `python -m scripts.harness.finish_work <slug> [--keep-branch]`.
 
-- [ ] **Step 1: Update the start-work skill tests first**
+- [x] **Step 1: Update the start-work skill tests first**
 
 In `tests/test_skill_start_work.py`, replace `test_branches_from_main` and `test_creates_worktree_without_moving_session` with:
 
@@ -1186,12 +1186,12 @@ def test_creates_worktree_without_moving_session():
 
 Keep every other existing test unchanged.
 
-- [ ] **Step 2: Run to verify they fail**
+- [x] **Step 2: Run to verify they fail**
 
 Run: `python -m pytest tests/test_skill_start_work.py -x -q`
 Expected: FAIL — the skill text does not yet mention `scripts.harness.start_work`.
 
-- [ ] **Step 3: Rewrite `skills/leash-start-work/SKILL.md` "How" section**
+- [x] **Step 3: Rewrite `skills/leash-start-work/SKILL.md` "How" section**
 
 Replace steps 1-5 of the `## How` section with:
 
@@ -1240,7 +1240,7 @@ Replace steps 1-5 of the `## How` section with:
 Update the frontmatter `description` to mention the configurable base:
 `Picks a <type>/<slug> branch off the configured base branch (.harness/branches.yaml, default main), creates .worktrees/<slug> via scripts.harness.start_work while the session stays rooted in the main checkout, and keeps you on the disciplined path without the stash-dance.`
 
-- [ ] **Step 4: Update `skills/leash-finish-work/SKILL.md`**
+- [x] **Step 4: Update `skills/leash-finish-work/SKILL.md`**
 
 In the `## How` section, replace step 1 with:
 
@@ -1274,12 +1274,12 @@ Replace the `## Constraints` section body with:
   `--keep-branch` and delete the branch manually once you are sure.
 ```
 
-- [ ] **Step 5: Run the skills suite**
+- [x] **Step 5: Run the skills suite**
 
 Run: `python -m pytest tests/test_skill_start_work.py -x -q`
 Expected: PASS. (`tests/test_docs.py` only asserts README strings, not skill wording — it is untouched here and belongs to Task 7.)
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add skills/leash-start-work/SKILL.md skills/leash-finish-work/SKILL.md tests/test_skill_start_work.py
@@ -1309,7 +1309,7 @@ acceptance: null
 **Interfaces:**
 - Produces: new placeholder `{{BASE_BRANCH}}` in both templates (bootstrap renders it, default `main`); bootstrap interview item 13; bootstrap Step 3d writes `.harness/branches.yaml` (hand-write pattern, like Step 3b's `.harness/gates`).
 
-- [ ] **Step 1: Add the failing tests**
+- [x] **Step 1: Add the failing tests**
 
 Append to `tests/test_templates.py`:
 
@@ -1336,12 +1336,12 @@ def test_bootstrap_documents_branches_config():
     assert "long_lived" in text
 ```
 
-- [ ] **Step 2: Run to verify they fail**
+- [x] **Step 2: Run to verify they fail**
 
 Run: `python -m pytest tests/test_templates.py tests/test_skill_bootstrap.py -x -q`
 Expected: FAIL on both new tests.
 
-- [ ] **Step 3: Edit `templates/AGENTS.md.tmpl`**
+- [x] **Step 3: Edit `templates/AGENTS.md.tmpl`**
 
 - Line 11: `created from \`main\` (or \`master\`)` → `created from \`{{BASE_BRANCH}}\``. Keep the rest of the sentence (never commit directly to `main`/`master`) intact.
 - Line 17: `1. \`git checkout main && git pull\` — start from the latest state.` → `1. \`git checkout {{BASE_BRANCH}} && git pull\` — start from the latest state.`
@@ -1361,13 +1361,13 @@ Expected: FAIL on both new tests.
 - Line 161: `(from \`main\`)` → `(from \`{{BASE_BRANCH}}\`)`.
 - Leave line 71 (CI on push to `main`/`master`) untouched — it describes CI, not branching.
 
-- [ ] **Step 4: Edit `templates/CLAUDE.md.tmpl`**
+- [x] **Step 4: Edit `templates/CLAUDE.md.tmpl`**
 
 - Line 35: `branch merged to main` → `branch merged to the project's merge target (\`.harness/branches.yaml\`, default \`{{BASE_BRANCH}}\`)`.
 - Line 43: `\`<type>/<slug>\` branch off \`main\`` → `\`<type>/<slug>\` branch off \`{{BASE_BRANCH}}\``.
 - Line 53: `from \`main\`)` → `from \`{{BASE_BRANCH}}\`)`.
 
-- [ ] **Step 5: Edit `skills/bootstrap-dev-leash/SKILL.md`**
+- [x] **Step 5: Edit `skills/bootstrap-dev-leash/SKILL.md`**
 
 - Interview table: add row `| 13 | Long-lived branches besides main? (dev/qa/homol/prod) | AskUserQuestion (yes / no) + free-text follow-up | {{BASE_BRANCH}} + .harness/branches.yaml (Step 3d) |`.
 - Notes on specific items — add:
@@ -1404,12 +1404,12 @@ like the Step 3 discipline files. The init script (Step 4) never touches
 this file.
 ````
 
-- [ ] **Step 6: Run the suites**
+- [x] **Step 6: Run the suites**
 
 Run: `python -m pytest tests/test_templates.py tests/test_skill_bootstrap.py -x -q`
 Expected: PASS — including the pre-existing template tests (`test_agents_template_documents_worktree_start_path`, `test_claude_template_mentions_start_work`; if either asserts the old literal `git worktree add ... main` string, update it to the new `python -m scripts.harness.start_work` line in this commit).
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add templates/AGENTS.md.tmpl templates/CLAUDE.md.tmpl skills/bootstrap-dev-leash/SKILL.md tests/test_templates.py tests/test_skill_bootstrap.py
@@ -1438,7 +1438,7 @@ acceptance: null
 - Create: `.harness/branches.yaml` (this repo — dogfood)
 - Test: `tests/test_docs.py` (extend)
 
-- [ ] **Step 1: Add the failing doc test**
+- [x] **Step 1: Add the failing doc test**
 
 Append to `tests/test_docs.py`:
 
@@ -1453,7 +1453,7 @@ def test_readme_documents_multi_branch_config():
 
 Run: `python -m pytest tests/test_docs.py -x -q` — Expected: FAIL on the new test.
 
-- [ ] **Step 2: Add the README section**
+- [x] **Step 2: Add the README section**
 
 Add under the section that documents `leash-start-work`/worktrees (keep the README's existing tone and heading level):
 
@@ -1480,7 +1480,7 @@ long_lived: [dev, qa, homol, prod]  # protected, like main/master
   work, no worktree removal while checked out on one.
 ````
 
-- [ ] **Step 3: Dogfood — declare this repo's config**
+- [x] **Step 3: Dogfood — declare this repo's config**
 
 Create `.harness/branches.yaml` in this repo:
 
@@ -1492,14 +1492,14 @@ merge_target: main
 
 Commit-tracked (it is config, not runtime state — unlike `finish_audit.log`).
 
-- [ ] **Step 4: Full-suite verification**
+- [x] **Step 4: Full-suite verification**
 
 Run: `python -m pytest -x -q`
 Expected: PASS (0 failed).
 
-- [ ] **Step 5: Dogfood the live cycle** (human-run check, still in this task): from the main checkout run `python -m scripts.harness.start_work chore/dogfood-branches` then `python -m scripts.harness.finish_work dogfood-branches` (trivially merged — no commits). Expected: worktree created from `main` and cleanly removed; `.harness/finish_audit.log` gains a `DELETE` line.
+- [x] **Step 5: Dogfood the live cycle** (human-run check, still in this task): from the main checkout run `python -m scripts.harness.start_work chore/dogfood-branches` then `python -m scripts.harness.finish_work dogfood-branches` (trivially merged — no commits). Expected: worktree created from `main` and cleanly removed; `.harness/finish_audit.log` gains a `DELETE` line.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add README.md tests/test_docs.py .harness/branches.yaml
