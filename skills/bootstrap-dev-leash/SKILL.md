@@ -49,6 +49,7 @@ Collect:
 | 10 | Design-system / UI concern? | `AskUserQuestion` (yes / no) | keep or drop `OPTIONAL:UI_RULES` |
 | 11 | Coverage targets | free-text | `{{COVERAGE_TARGETS}}` |
 | 12 | Parallel-work worktree layout? | `AskUserQuestion` (yes / no) | keep or drop the `.worktrees/` gitignore patch (Step 3c) |
+| 13 | Antagonist critics on specs/plans? | `AskUserQuestion` (yes / no) | keep or drop `OPTIONAL:ANTAGONIST_CRITICS`; write or skip `.harness/critics.json` (Step 3d) |
 
 Notes on specific items:
 
@@ -62,6 +63,19 @@ Notes on specific items:
   still works but will warn the directory is not ignored. This is opt-in and
   never weakens branch discipline; it only makes N mandatory branches livable
   at once.
+- **Antagonist critics (item 13):** if yes, ask a follow-up `AskUserQuestion`
+  (multiSelect) for which top-tier models to use as critics — current list:
+  `opus`, `fable` — defaulting to both selected.
+  Zero models selected is treated as answering "no" to item 13. If yes: keep the
+  `OPTIONAL:ANTAGONIST_CRITICS` block in AGENTS.md.tmpl and write
+  `.harness/critics.json` in Step 3d. If no: drop the block and write no
+  config file. The `critic_reminder` PostToolUse hook is always present in
+  the rendered settings.json and is inert without the config file, so this
+  choice never touches settings.json. Maintenance note: extend the model
+  list here when new top-tier models ship; there is no automatic tier
+  discovery. Caveat to relay to the user: if their sessions run on the same
+  model as a critic, the independence benefit shrinks to fresh-context
+  adversarial framing.
 
 ## Step 3 — Render the project-specific files
 
@@ -91,10 +105,17 @@ The optional blocks are delimited in `AGENTS.md.tmpl` by HTML-comment markers:
 <!-- OPTIONAL:UI_RULES -->
 ...
 <!-- /OPTIONAL:UI_RULES -->
+
+<!-- OPTIONAL:ANTAGONIST_CRITICS -->
+...
+<!-- /OPTIONAL:ANTAGONIST_CRITICS -->
 ```
 
 - If the user answered **yes** to a concern: keep the block's body, substitute its placeholder, and **delete the two marker comment lines** so they do not appear in the rendered file.
 - If the user answered **no**: delete the **entire block** including both marker lines and everything between them.
+- `OPTIONAL:ANTAGONIST_CRITICS` follows the same keep/drop rule, driven by
+  interview item 13. Keeping it has no placeholder to substitute; it is
+  paired with writing `.harness/critics.json` in Step 3d.
 
 `CLAUDE.md.tmpl` and `settings.json.tmpl` have no optional blocks.
 
@@ -106,6 +127,13 @@ from `templates/settings.json.tmpl`, which **no longer registers a
 old session leash automatically. If settings.json is merged rather than
 overwritten, manually remove any existing `"SessionStart"` entry — it is
 superseded by the `PreToolUse` worktree gate and should not remain.
+
+Re-running bootstrap also delivers newly added harness files: the init
+script copies `scripts/harness/` per file, add-only (existing files are
+never overwritten), so an older install gains `critic_reminder.py` on
+re-bootstrap, and the re-rendered settings.json registers its PostToolUse
+hook. Offer interview item 13 (antagonist critics) to migrating projects
+too.
 
 ### Writing — apply the no-overwrite constraint
 
@@ -168,6 +196,19 @@ This is the proactive parallel-work directory created by `leash-start-work`;
 ignoring it keeps worktree checkouts out of commits. Idempotent — an exact
 match anywhere in the file counts as present; never duplicate. If the user
 declined item 12, make no `.worktrees/` change.
+
+## Step 3d — Write the critics config (item 13 only)
+
+If the user opted in to antagonist critics, write `.harness/critics.json`
+with the models they selected:
+
+    {"models": ["opus", "fable"]}
+
+Create `.harness/` if it does not exist. This file is committed project
+configuration (do NOT add it to `.gitignore`) and is the feature's single
+source of truth: deleting it disables the critics entirely; editing the
+`models` list changes which critics run. If the user declined item 13,
+write nothing.
 
 ## Step 4 — Copy the project-agnostic layer
 
