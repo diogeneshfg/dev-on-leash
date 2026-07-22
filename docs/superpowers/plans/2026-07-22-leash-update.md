@@ -32,7 +32,7 @@
 - `decide_file(*, src: Path, dst: Path, manifest_hash: str | None, forced: bool) -> tuple[str, str | None]` — returns `(action, diff)`, action ∈ `added | updated | unchanged | refused`; diff (unified, dst→src) only for `refused`.
 - `load_manifest(target: Path) -> dict` / `write_manifest(target: Path, *, version: str, files: dict[str, str]) -> None` — at `.harness/leash.json`, schema `{"schema": 1, "version": ..., "files": {...}}`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 """leash_update decision-core tests."""
@@ -118,12 +118,12 @@ def test_managed_pairs_covers_harness_and_templates():
     assert not any("__pycache__" in str(s) for s in pairs.values())
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `python -m pytest tests/test_leash_update.py -q`
 Expected: collection error — `No module named 'scripts.leash_update'`.
 
-- [ ] **Step 3: Minimal implementation**
+- [x] **Step 3: Minimal implementation**
 
 ```python
 """Update the copied dev-on-leash layer in a consumer project.
@@ -196,11 +196,11 @@ def write_manifest(target: Path, *, version: str, files: dict[str, str]) -> None
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 ```
 
-- [ ] **Step 4: Run to verify pass**
+- [x] **Step 4: Run to verify pass**
 
 Run: `python -m pytest tests/test_leash_update.py -q` → all pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/leash_update.py tests/test_leash_update.py
@@ -219,7 +219,7 @@ git commit -m "feat(update): leash_update decision core - manifest, managed set,
 - `REQUIRED_HOOKS: list[tuple[str, str | None, str]]` — `(event, matcher, command)`; source of truth for hook wiring.
 - `merge_hooks(settings: dict) -> tuple[dict, list[str]]` — returns `(new settings, added command strings)`; pure (no I/O).
 
-- [ ] **Step 1: Failing tests**
+- [x] **Step 1: Failing tests**
 
 ```python
 from scripts.leash_update import REQUIRED_HOOKS, merge_hooks
@@ -255,9 +255,9 @@ def test_required_hooks_agree_with_settings_template():
         assert command in text, f"template missing required hook: {command}"
 ```
 
-- [ ] **Step 2: Verify RED** — `ImportError: cannot import name 'REQUIRED_HOOKS'`.
+- [x] **Step 2: Verify RED** — `ImportError: cannot import name 'REQUIRED_HOOKS'`.
 
-- [ ] **Step 3: Implementation** (append to `leash_update.py`)
+- [x] **Step 3: Implementation** (append to `leash_update.py`)
 
 ```python
 import copy
@@ -289,9 +289,9 @@ def merge_hooks(settings: dict) -> tuple[dict, list[str]]:
     return merged, added
 ```
 
-- [ ] **Step 4: Verify GREEN** — full file: `python -m pytest tests/test_leash_update.py -q`.
+- [x] **Step 4: Verify GREEN** — full file: `python -m pytest tests/test_leash_update.py -q`.
 
-- [ ] **Step 5: Commit** — `git commit -m "feat(update): additive settings.json hook merge with REQUIRED_HOOKS source of truth"`
+- [x] **Step 5: Commit** — `git commit -m "feat(update): additive settings.json hook merge with REQUIRED_HOOKS source of truth"`
 
 ---
 
@@ -305,7 +305,7 @@ def merge_hooks(settings: dict) -> tuple[dict, list[str]]:
 - `run_update(*, plugin_root: Path, target: Path, force: set[str], init_manifest_only: bool = False) -> dict` — report `{"version": str, "actions": {relpath: action}, "hooks_added": [...], "diffs": {relpath: diff}}`. Applies copies, merges settings (reading/writing `<target>/.claude/settings.json` if present, creating it with `{"hooks": ...}` if absent), writes manifest. `init_manifest_only` writes only the manifest for files currently identical-or-present, changing nothing else.
 - CLI: `python leash_update.py <target> [--force RELPATH]... [--init-manifest]`.
 
-- [ ] **Step 1: Failing tests** (fixture builds a fake plugin root + fake project)
+- [x] **Step 1: Failing tests** (fixture builds a fake plugin root + fake project)
 
 ```python
 from scripts.leash_update import run_update
@@ -397,9 +397,9 @@ def test_init_manifest_only_stamps_without_writing(tmp_path: Path):
     assert "scripts/harness/session_root_guard.py" not in m["files"]
 ```
 
-- [ ] **Step 2: Verify RED** — `ImportError: cannot import name 'run_update'`.
+- [x] **Step 2: Verify RED** — `ImportError: cannot import name 'run_update'`.
 
-- [ ] **Step 3: Implementation** (append to `leash_update.py`)
+- [x] **Step 3: Implementation** (append to `leash_update.py`)
 
 ```python
 import argparse
@@ -494,9 +494,9 @@ if __name__ == "__main__":
     raise SystemExit(main(sys.argv[1:]))
 ```
 
-- [ ] **Step 4: Verify GREEN** — `python -m pytest tests/test_leash_update.py -q`.
+- [x] **Step 4: Verify GREEN** — `python -m pytest tests/test_leash_update.py -q`.
 
-- [ ] **Step 5: init scripts stamp the manifest.** `init.ps1`, before the summary block:
+- [x] **Step 5: init scripts stamp the manifest.** `init.ps1`, before the summary block:
 
 ```powershell
 # 7. Stamp .harness/leash.json so /leash-update can detect staleness later
@@ -521,7 +521,7 @@ else
 fi
 ```
 
-- [ ] **Step 6: Commit** — `git commit -m "feat(update): run_update CLI with --force/--init-manifest; init stamps manifest"`
+- [x] **Step 6: Commit** — `git commit -m "feat(update): run_update CLI with --force/--init-manifest; init stamps manifest"`
 
 ---
 
@@ -534,7 +534,7 @@ fi
 **Interfaces (Produces):**
 - `check(*, cwd: Path, plugin_root: Path) -> str | None` — warning text or None. Self-contained (no imports from `scripts.harness` or `leash_update`).
 
-- [ ] **Step 1: Failing tests**
+- [x] **Step 1: Failing tests**
 
 ```python
 """update_check tests: silent off leashed repos, warns on stale manifest."""
@@ -606,9 +606,9 @@ def test_hooks_json_wires_update_check():
                for c in commands)
 ```
 
-- [ ] **Step 2: Verify RED** — `No module named 'scripts.update_check'`.
+- [x] **Step 2: Verify RED** — `No module named 'scripts.update_check'`.
 
-- [ ] **Step 3: Implementation** — `scripts/update_check.py`:
+- [x] **Step 3: Implementation** — `scripts/update_check.py`:
 
 ```python
 """Plugin-level SessionStart hook: warn when a leashed project is stale.
@@ -696,9 +696,9 @@ if __name__ == "__main__":
 }
 ```
 
-- [ ] **Step 4: Verify GREEN** — `python -m pytest tests/test_update_check.py -q`.
+- [x] **Step 4: Verify GREEN** — `python -m pytest tests/test_update_check.py -q`.
 
-- [ ] **Step 5: Commit** — `git commit -m "feat(update): plugin-level SessionStart staleness check"`
+- [x] **Step 5: Commit** — `git commit -m "feat(update): plugin-level SessionStart staleness check"`
 
 ---
 
@@ -709,7 +709,7 @@ if __name__ == "__main__":
 - Modify: `skills/bootstrap-dev-leash/SKILL.md` (init step: mention the manifest stamp)
 - Test: `tests/test_skill_update.py`
 
-- [ ] **Step 1: Failing structural test**
+- [x] **Step 1: Failing structural test**
 
 ```python
 """Structural assertions for the leash-update skill markdown."""
@@ -737,9 +737,9 @@ def test_skill_documents_refusal_and_untouched_files():
     assert "refus" in text.lower()
 ```
 
-- [ ] **Step 2: Verify RED** — file missing.
+- [x] **Step 2: Verify RED** — file missing.
 
-- [ ] **Step 3: Write `skills/leash-update/SKILL.md`**
+- [x] **Step 3: Write `skills/leash-update/SKILL.md`**
 
 ```markdown
 ---
@@ -786,9 +786,9 @@ bootstrapped target project (it needs `.harness/`).
   for this flow.)
 ```
 
-- [ ] **Step 4: bootstrap-dev-leash SKILL.md** — in the init-script section, after the copy description, add: "The init script finishes by stamping `.harness/leash.json` (a version + hash manifest) so `/leash-update` can later detect staleness and local edits."
+- [x] **Step 4: bootstrap-dev-leash SKILL.md** — in the init-script section, after the copy description, add: "The init script finishes by stamping `.harness/leash.json` (a version + hash manifest) so `/leash-update` can later detect staleness and local edits."
 
-- [ ] **Step 5: Verify GREEN + commit** — `git commit -m "feat(update): leash-update skill; bootstrap documents the manifest stamp"`
+- [x] **Step 5: Verify GREEN + commit** — `git commit -m "feat(update): leash-update skill; bootstrap documents the manifest stamp"`
 
 ---
 
@@ -798,7 +798,7 @@ bootstrapped target project (it needs `.harness/`).
 - Create: `scripts/dogfood_leash_update.py`
 - Modify: `scripts/smoke_e2e.py` (add step calling the dogfood script)
 
-- [ ] **Step 1: Write `scripts/dogfood_leash_update.py`** — uses this repo as the real plugin root; builds a temp fixture project; asserts the matrix end-to-end via the CLI (subprocess), not by importing internals:
+- [x] **Step 1: Write `scripts/dogfood_leash_update.py`** — uses this repo as the real plugin root; builds a temp fixture project; asserts the matrix end-to-end via the CLI (subprocess), not by importing internals:
 
 ```python
 """Dogfood: run the real leash_update CLI against a fixture project.
@@ -875,13 +875,13 @@ if __name__ == "__main__":
     raise SystemExit(main())
 ```
 
-- [ ] **Step 2: Run it** — `python scripts/dogfood_leash_update.py` → `DOGFOOD leash-update PASS`.
+- [x] **Step 2: Run it** — `python scripts/dogfood_leash_update.py` → `DOGFOOD leash-update PASS`.
 
-- [ ] **Step 3: Wire into `scripts/smoke_e2e.py`** — add a step following the existing pattern (find the step list; add `("leash-update: stale->update, edit->refuse", [sys.executable, "scripts/dogfood_leash_update.py"])`-style entry consistent with how `dogfood_worktree_gate.py` is invoked; renumber the `[N/10]` labels if they are literal).
+- [x] **Step 3: Wire into `scripts/smoke_e2e.py`** — add a step following the existing pattern (find the step list; add `("leash-update: stale->update, edit->refuse", [sys.executable, "scripts/dogfood_leash_update.py"])`-style entry consistent with how `dogfood_worktree_gate.py` is invoked; renumber the `[N/10]` labels if they are literal).
 
-- [ ] **Step 4: Run smoke** — `python scripts/smoke_e2e.py` → `SMOKE PASS`.
+- [x] **Step 4: Run smoke** — `python scripts/smoke_e2e.py` → `SMOKE PASS`.
 
-- [ ] **Step 5: Commit** — `git commit -m "test(update): dogfood leash-update end-to-end; wire into smoke_e2e"`
+- [x] **Step 5: Commit** — `git commit -m "test(update): dogfood leash-update end-to-end; wire into smoke_e2e"`
 
 ---
 
@@ -890,7 +890,7 @@ if __name__ == "__main__":
 **Files:**
 - Modify: `README.md` (new "Updating" section after the bootstrap/init docs), `CHANGELOG.md` (`[Unreleased]`)
 
-- [ ] **Step 1: README "Updating" section**
+- [x] **Step 1: README "Updating" section**
 
 ```markdown
 ## Updating a bootstrapped project
@@ -911,7 +911,7 @@ entries between your version and the plugin's for anything worth porting
 by hand. Review `git diff` and commit the result.
 ```
 
-- [ ] **Step 2: CHANGELOG `[Unreleased]` → `### Added`**
+- [x] **Step 2: CHANGELOG `[Unreleased]` → `### Added`**
 
 ```markdown
 ### Added
@@ -925,9 +925,9 @@ by hand. Review `git diff` and commit the result.
   into `.claude/settings.json`. `CLAUDE.md`/`AGENTS.md` are never touched.
 ```
 
-- [ ] **Step 3: Full suite + smoke** — `python -m pytest -q` all green; `python scripts/smoke_e2e.py` → `SMOKE PASS`.
+- [x] **Step 3: Full suite + smoke** — `python -m pytest -q` all green; `python scripts/smoke_e2e.py` → `SMOKE PASS`.
 
-- [ ] **Step 4: Commit** — `git commit -m "docs(update): README Updating section + CHANGELOG"`
+- [x] **Step 4: Commit** — `git commit -m "docs(update): README Updating section + CHANGELOG"`
 
 ---
 
