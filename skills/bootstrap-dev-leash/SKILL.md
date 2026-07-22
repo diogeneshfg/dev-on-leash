@@ -178,6 +178,10 @@ Invoke the plugin's init script to drop the agnostic layer into the target proje
 
 This copies `scripts/harness/`, `docs/task-schema.md`, `docs/plan-template.md`, and an empty `docs/plans/` directory into the target project. Run it from the target project root. If the init script is not yet present in the installed plugin version, report that the agnostic layer could not be copied and tell the user to update the plugin — do not hand-copy files.
 
+The init script finishes by stamping `.harness/leash.json` — a version +
+file-hash manifest — so `/leash-update` can later detect staleness and
+local edits. Commit it with the rest of the bootstrap output.
+
 ## Step 4b — Offer the pre-commit hook (opt-in)
 
 The init script copies an opt-in pre-commit hook to

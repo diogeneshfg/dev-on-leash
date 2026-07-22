@@ -140,6 +140,24 @@ comfortable, without the stash-dance.
 
 The worktree leash makes this the only path to writing — the main tree is read-only, so every change starts here.
 
+## Updating a bootstrapped project
+
+Skills and agents update with the plugin automatically; the *copied*
+layer (`scripts/harness/`, `docs/task-schema.md`, `docs/plan-template.md`,
+the pre-commit hook) does not. A plugin-level `SessionStart` hook
+(`scripts/update_check.py`) compares the project's `.harness/leash.json`
+stamp (version + file-hash manifest, written by init) against the
+installed plugin version and warns when the project is stale — including
+projects bootstrapped before the stamp existed.
+
+Run `/leash-update` to apply: intact copies are overwritten, new files
+are added, and missing hook entries are merged (additively) into
+`.claude/settings.json`. Files you edited locally are **refused** with a
+diff — override one at a time with `--force <relpath>`. `CLAUDE.md` and
+`AGENTS.md` are never touched; the report points at the CHANGELOG
+entries between your version and the plugin's for anything worth porting
+by hand. Review `git diff` and commit the result.
+
 ## Trust model
 
 Be precise about what the harness enforces and what it only assists:

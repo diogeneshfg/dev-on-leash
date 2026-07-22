@@ -156,6 +156,16 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# 7. Stamp .harness/leash.json so /leash-update can detect staleness later
+# ---------------------------------------------------------------------------
+if python "$PLUGIN_ROOT/scripts/leash_update.py" "$TARGET" --init-manifest >/dev/null 2>&1; then
+    printf 'Created: .harness/leash.json\n'
+    CREATED="$CREATED .harness/leash.json"
+else
+    printf 'WARNING: could not stamp .harness/leash.json (python missing?) - /leash-update will still work.\n' >&2
+fi
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 printf '%s\n' '' '--- dev-on-leash init summary ---'
