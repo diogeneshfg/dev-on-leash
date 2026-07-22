@@ -1,0 +1,3 @@
+# dev-on-leash itself: single-trunk. Present to dogfood the config path.
+base: main
+merge_target: main

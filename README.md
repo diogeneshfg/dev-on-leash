@@ -140,6 +140,27 @@ comfortable, without the stash-dance.
 
 The worktree leash makes this the only path to writing — the main tree is read-only, so every change starts here.
 
+### Multi-branch projects (`.harness/branches.yaml`)
+
+Projects with several long-lived branches (dev / qa / homol / prod)
+declare them once:
+
+```yaml
+# .harness/branches.yaml  (optional — absent means classic main/master)
+base: prod                          # where new worktrees start
+merge_target: dev                   # where work branches land (delete-safety)
+long_lived: [dev, qa, homol, prod]  # protected, like main/master
+```
+
+- `/leash-start-work` starts worktrees from `base` (override per-invocation
+  with `--base <branch>`), fetching first and warning when the local base
+  trails its remote.
+- `/leash-finish-work` deletes a work branch only after proving it is an
+  ancestor of `merge_target` (local or remote-tracking) — squash-merged
+  branches are not provable; use `--keep-branch`.
+- Every `long_lived` branch is protected exactly like `main`: no direct
+  work, no worktree removal while checked out on one.
+
 ## Updating a bootstrapped project
 
 Skills and agents update with the plugin automatically; the *copied*
