@@ -52,3 +52,9 @@ def test_readme_documents_worktree_workflow():
     text = (root / "README.md").read_text(encoding="utf-8")
     assert "leash-start-work" in text
     assert ".worktrees/" in text
+
+
+def test_readme_documents_antagonist_critics():
+    text = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert "antagonist" in text.lower()
+    assert ".harness/critics.json" in text
