@@ -158,8 +158,15 @@ merged. The worktree leash below makes this the *only* way to write — the main
 A `PreToolUse` gate denies writes (`Edit`/`Write`/`MultiEdit`/`NotebookEdit`)
 whose target is in the **main worktree**. Begin every change with
 `/leash-start-work` (creates `.worktrees/<slug>` on `<type>/<slug>` from
-`main`) and edit inside that worktree. Concurrent Claude Code sessions are
-safe by construction — each has its own worktree; none may touch the main
+`main`) and edit files inside that worktree. Concurrent Claude Code sessions
+are safe by construction — each has its own worktree; none may touch the main
 tree. Finish with `/leash-finish-work`. For a one-off main-tree edit, run
 `python -m scripts.harness.allow_main_write "<reason>"` (audited in
 `.harness/exceptions.log`) and retry.
+
+**The session stays rooted in the main checkout.** Only edit *targets* live
+under `.worktrees/<slug>`; never launch or relocate a Claude Code session
+inside the worktree (no `EnterWorktree`, no opening the worktree folder as a
+workspace). Session history is keyed to the session's root directory, so a
+session rooted in a worktree loses its history when the worktree is removed.
+A `SessionStart` hook (`session_root_guard`) warns when this happens.

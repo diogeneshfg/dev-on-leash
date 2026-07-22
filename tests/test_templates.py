@@ -35,7 +35,10 @@ def test_agents_template_has_architecture_block():
 
 def test_settings_template_has_worktree_leash_hook():
     text = (ROOT / "templates" / "settings.json.tmpl").read_text(encoding="utf-8")
-    assert "SessionStart" not in text
+    # The old session-leash SessionStart *detector* stays gone; the only
+    # SessionStart hook is the stateless session_root_guard warning.
+    assert "session_start" not in text
+    assert "scripts.harness.session_root_guard" in text
     assert "PreToolUse" in text
     # Hooks must be invoked as modules (-m), not by path. See
     # test_session_hook_commands_in_template_actually_run below.

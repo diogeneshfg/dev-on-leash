@@ -108,6 +108,15 @@ the authorization on the next main-tree write and logs it to
 `.harness/exceptions.log`. The main tree is expected to mirror the remote —
 you keep it synced with ordinary `git fetch`/`pull`/merge.
 
+**The session stays rooted in the main checkout.** Only the *files being
+edited* live under `.worktrees/<slug>` — never start (or relocate) a Claude
+Code session inside the worktree. Session history is keyed to the session's
+root directory, so a session rooted in `.worktrees/<slug>` loses its history
+the moment `/leash-finish-work` removes the worktree. The gate resolves write
+targets absolutely, so editing worktree files from a main-checkout session
+always works. A `SessionStart` hook (`scripts/harness/session_root_guard.py`)
+warns whenever a session is rooted inside a linked worktree.
+
 `dev-on-leash` dogfoods this on itself: see
 `scripts/dogfood_worktree_gate.py`, run from `scripts/smoke_e2e.py`, which
 asserts the gate denies a main-tree edit, allows an edit inside a worktree,
@@ -122,8 +131,9 @@ comfortable, without the stash-dance.
 - **Bootstrap** offers to standardize a `.worktrees/` layout and adds
   `.worktrees/` to `.gitignore` under the `# dev-on-leash` heading.
 - **`/leash-start-work`** starts a change in its own worktree:
-  `git worktree add .worktrees/<slug> -b <type>/<slug> main`. It delegates the
-  mechanism to `EnterWorktree` / `superpowers:using-git-worktrees` when present.
+  `git worktree add .worktrees/<slug> -b <type>/<slug> main` — run from the
+  main checkout, without moving the session (no `EnterWorktree` or other
+  session-relocating mechanisms).
 - **`cycle_done.py`** prints an advisory reminder to `git worktree remove`
   once a `<type>/<slug>` branch is merged (it never removes feature worktrees
   for you).

@@ -30,12 +30,15 @@ def test_branches_from_main():
     assert "main" in text
 
 
-def test_delegates_to_worktree_tooling():
+def test_creates_worktree_without_moving_session():
+    """Sessions rooted inside `.worktrees/<slug>` lose their history when
+    the worktree is removed (history is keyed to the session root). The
+    skill must use plain `git worktree add` and forbid session-relocating
+    mechanisms such as EnterWorktree."""
     text = SKILL_PATH.read_text(encoding="utf-8")
-    assert "EnterWorktree" in text
-    assert "using-git-worktrees" in text
-    # Documented fallback command when neither is available.
     assert "git worktree add .worktrees/<slug> -b <type>/<slug> main" in text
+    assert "Do **not** use session-relocating mechanisms (`EnterWorktree`" in text
+    assert "session stays" in text.lower() or "stays rooted" in text.lower()
 
 
 def test_warns_when_not_ignored():
