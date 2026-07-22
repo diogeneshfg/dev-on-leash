@@ -1,17 +1,27 @@
 """leash-finish-work: remove a .worktrees/<slug> worktree + its branch.
 
 Stateless (no lockfiles). Counterpart to /leash-start-work. Refuses on a
-dirty worktree or an unmerged branch unless --keep-branch. Never uses
-`git worktree remove --force` or `git branch -D` — work is never silently
+dirty worktree or an unmerged branch unless --keep-branch. Deletion uses
+`git branch -D` ONLY after an explicit `git merge-base --is-ancestor`
+proof against the configured merge target (local or remote-tracking) —
+never `-d`'s HEAD-relative heuristic, and never without proof. Every
+deletion is audited to .harness/finish_audit.log; work is never silently
 discarded.
 """
 from __future__ import annotations
 
 import argparse
+import datetime as _dt
 import os
 import subprocess
 import sys
 from pathlib import Path
+
+from scripts.harness.branches import (
+    BranchConfigError,
+    load_branch_config,
+    prove_merged,
+)
 
 
 class FinishWorkError(RuntimeError):
@@ -37,11 +47,12 @@ def _worktree_dirty(worktree: Path) -> bool:
     return bool(_git(["status", "--porcelain"], cwd=worktree).strip())
 
 
-def _branch_is_merged(repo: Path, branch: str) -> bool:
-    out = _git(["branch", "--merged"], cwd=repo)
-    # Strip `*` (current) and `+` (checked out in a linked worktree) markers.
-    merged = {b.strip().lstrip("*+ ").strip() for b in out.splitlines()}
-    return branch in merged
+def _audit_delete(repo_root: Path, *, branch: str, sha: str, proven: str) -> None:
+    log = repo_root / ".harness" / "finish_audit.log"
+    log.parent.mkdir(parents=True, exist_ok=True)
+    ts = _dt.datetime.now(_dt.UTC).isoformat()
+    with log.open("a", encoding="utf-8") as f:
+        f.write(f"{ts}\tDELETE\tbranch={branch}\tsha={sha}\tproven={proven}\n")
 
 
 def resolve_worktree(
@@ -67,19 +78,37 @@ def finish_work(
     if not wt.exists():
         raise FinishWorkError(f"worktree not found: {wt}")
     branch = _current_branch(wt)
-    if branch in ("main", "master"):
+    try:
+        cfg = load_branch_config(repo_root)
+    except BranchConfigError as exc:
+        raise FinishWorkError(str(exc)) from exc
+    if branch in cfg.protected:
         raise FinishWorkError(f"worktree {wt} is on {branch}; refusing")
     if _worktree_dirty(wt):
         raise FinishWorkError(
             f"worktree {wt} has uncommitted changes; commit or stash first"
         )
-    if not keep_branch and not _branch_is_merged(repo_root, branch):
-        raise FinishWorkError(
-            f"branch {branch} is unmerged; merge it first or pass --keep-branch"
-        )
+    proven: str | None = None
+    if not keep_branch:
+        proven = prove_merged(repo_root, branch, cfg)
+        if proven is None:
+            raise FinishWorkError(
+                f"branch {branch} is unmerged — not an ancestor of "
+                f"{cfg.merge_target} (local or remote-tracking); merge it "
+                "first or pass --keep-branch. Note: squash/rebase merges "
+                "are not provable — use --keep-branch and delete manually."
+            )
+    # Prove everything BEFORE the first destructive step so a failure can
+    # never leave "worktree gone, branch orphaned".
+    sha = _git(["rev-parse", branch], cwd=repo_root).strip()
     _git(["worktree", "remove", str(wt)], cwd=repo_root)
     if not keep_branch:
-        _git(["branch", "-d", branch], cwd=repo_root)
+        assert proven is not None
+        # -D is sanctioned here by the explicit ancestry proof above; -d's
+        # HEAD-relative check cannot express "merged into dev while HEAD
+        # is on main" and would abort the multi-branch flow mid-way.
+        _git(["branch", "-D", branch], cwd=repo_root)
+        _audit_delete(repo_root, branch=branch, sha=sha, proven=proven)
     return branch
 
 

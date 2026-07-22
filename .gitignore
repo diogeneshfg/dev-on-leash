@@ -10,6 +10,7 @@ htmlcov/
 
 # Harness runtime
 .harness/exceptions.log
+.harness/finish_audit.log
 .harness/sessions/
 .worktrees/
 
