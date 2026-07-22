@@ -84,3 +84,66 @@ def test_requires_a_name(tmp_path: Path):
     _init_repo(repo)
     with pytest.raises(FinishWorkError, match="name the worktree"):
         finish_work(repo_root=repo)
+
+
+def _write_cfg(repo: Path, text: str) -> None:
+    (repo / ".harness").mkdir(exist_ok=True)
+    (repo / ".harness" / "branches.yaml").write_text(text, encoding="utf-8")
+
+
+def test_merged_into_declared_target_while_head_on_main(tmp_path: Path):
+    """The critic-found blocker: merged into dev, HEAD on main — must
+    remove worktree AND delete branch (proof-based -D, not -d)."""
+    repo = tmp_path / "r"
+    _init_repo(repo)
+    subprocess.check_call(["git", "branch", "dev"], cwd=repo)
+    wt = _add_worktree(repo, "feat-x", "feat/x")
+    (wt / "f.txt").write_text("x\n", encoding="utf-8")
+    subprocess.check_call(["git", "add", "."], cwd=wt)
+    subprocess.check_call(["git", "commit", "-q", "-m", "wip"], cwd=wt)
+    # merge feat/x into dev without touching main's checkout:
+    subprocess.check_call(
+        ["git", "fetch", ".", "feat/x:dev"], cwd=repo)  # fast-forward dev
+    _write_cfg(repo, "merge_target: dev\nlong_lived: [dev]\n")
+    branch = finish_work(repo_root=repo, slug="feat-x")
+    assert branch == "feat/x"
+    assert not wt.exists()
+    out = subprocess.run(["git", "branch"], cwd=repo,
+                         capture_output=True, text=True).stdout
+    assert "feat/x" not in out
+    audit = (repo / ".harness" / "finish_audit.log").read_text(encoding="utf-8")
+    assert "branch=feat/x" in audit and "proven=refs/heads/dev" in audit
+
+
+def test_unmerged_into_target_still_refused(tmp_path: Path):
+    repo = tmp_path / "r"
+    _init_repo(repo)
+    subprocess.check_call(["git", "branch", "dev"], cwd=repo)
+    wt = _add_worktree(repo, "feat-x", "feat/x")
+    (wt / "f.txt").write_text("x\n", encoding="utf-8")
+    subprocess.check_call(["git", "add", "."], cwd=wt)
+    subprocess.check_call(["git", "commit", "-q", "-m", "wip"], cwd=wt)
+    _write_cfg(repo, "merge_target: dev\nlong_lived: [dev]\n")
+    with pytest.raises(FinishWorkError, match="not an ancestor"):
+        finish_work(repo_root=repo, slug="feat-x")
+    assert wt.exists(), "nothing may be removed when the proof fails"
+
+
+def test_refuses_worktree_on_declared_long_lived_branch(tmp_path: Path):
+    repo = tmp_path / "r"
+    _init_repo(repo)
+    _write_cfg(repo, "long_lived: [dev]\n")
+    wt = repo / ".worktrees" / "devwt"
+    subprocess.check_call(
+        ["git", "worktree", "add", str(wt), "-b", "dev", "main"], cwd=repo)
+    with pytest.raises(FinishWorkError, match="refusing"):
+        finish_work(repo_root=repo, worktree_path=str(wt))
+
+
+def test_malformed_branches_yaml_is_hard_error(tmp_path: Path):
+    repo = tmp_path / "r"
+    _init_repo(repo)
+    _write_cfg(repo, "bogus: 1\n")
+    _add_worktree(repo, "feat-x", "feat/x")
+    with pytest.raises(FinishWorkError, match="unknown key"):
+        finish_work(repo_root=repo, slug="feat-x")

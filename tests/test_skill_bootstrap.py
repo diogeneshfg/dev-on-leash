@@ -18,6 +18,7 @@ def test_skill_documents_gitignore_patch_for_runtime_files():
     # one-shot worktree-leash escape marker.
     assert ".harness/exceptions.log" in text
     assert ".harness/allow-main-write" in text
+    assert ".harness/finish_audit.log" in text
     assert ".gitignore" in text
 
 
@@ -42,3 +43,10 @@ def test_skill_worktrees_optin_is_conditional():
     # It is opt-in: the skill must frame it as a yes/no choice, not an
     # unconditional patch.
     assert "opt-in" in text or "if the user answered" in text or "if yes" in text
+
+
+def test_bootstrap_documents_branches_config():
+    text = SKILL_PATH.read_text(encoding="utf-8")
+    assert ".harness/branches.yaml" in text
+    assert "{{BASE_BRANCH}}" in text
+    assert "long_lived" in text

@@ -1,6 +1,6 @@
 ---
 name: leash-start-work
-description: Use to start a new change in its own git worktree — "start a feature", "work on X in parallel", "new branch+worktree". Picks a <type>/<slug> branch off main, creates .worktrees/<slug> while the session stays rooted in the main checkout, and keeps you on the disciplined path without the stash-dance.
+description: Use to start a new change in its own git worktree — "start a feature", "work on X in parallel", "new branch+worktree". Picks a <type>/<slug> branch off the configured base branch (.harness/branches.yaml, default main), creates .worktrees/<slug> via scripts.harness.start_work while the session stays rooted in the main checkout, and keeps you on the disciplined path without the stash-dance.
 ---
 
 # leash-start-work
@@ -30,36 +30,42 @@ move the session.
 1. **Pick the branch name.** Choose `type` ∈ `feat | fix | refactor | docs |
    chore` and a short kebab-case `slug`. The branch is `<type>/<slug>`; the
    worktree directory is `.worktrees/<slug>` (no type prefix on the dir).
-   Validate the slug; **refuse** anything that would land on `main`/`master` —
-   branch discipline is mandatory and never overridden here.
+   Never target `main`/`master` or any branch declared `long_lived` in
+   `.harness/branches.yaml` — branch discipline is mandatory and never
+   overridden here (the backend refuses these mechanically).
 
-2. **Branch from `main`.** The new branch starts from `main`/`master` (not the
-   current `HEAD`), honoring the branch-discipline section of `AGENTS.md`.
-
-3. **Create the worktree without moving the session.** Run, from the main
-   checkout:
+2. **Run the mechanical backend** from the main checkout:
 
    ```
-   git worktree add .worktrees/<slug> -b <type>/<slug> main
+   python -m scripts.harness.start_work <type>/<slug> [--base <branch>]
    ```
 
-   (`type ∈ feat|fix|refactor|docs|chore`)
+   Base resolution precedence: `--base` argument → `base:` in
+   `.harness/branches.yaml` → detected `main`/`master`. A `--base` must be
+   `main`/`master` or declared in the config's `long_lived` list. The
+   script fetches the base's remote when one exists and, if the local base
+   is behind, warns and branches from the remote-tracking ref with
+   `--no-track` (the feature branch gets no upstream). It refuses a
+   diverged base, a protected slug, and a missing base ref. Offline work
+   never blocks — fetch failures warn and fall back to local refs. Do not
+   hand-roll `git worktree add`; the script is the guardrail.
 
-   Do **not** use session-relocating mechanisms (`EnterWorktree`, opening
-   the worktree folder as a new workspace, launching a new session inside
-   `.worktrees/<slug>`): they re-root the session in the worktree, and its
-   history is lost when the worktree is removed. The
+3. **Stay home.** Do **not** use session-relocating mechanisms (`EnterWorktree`,
+   opening the worktree folder as a new workspace, launching a new session
+   inside `.worktrees/<slug>`): they re-root the session in the worktree, and
+   its history is lost when the worktree is removed. The
    `session_root_guard` SessionStart hook warns if a session is ever
    rooted there.
 
-4. **Warn if not ignored.** If `.worktrees/` is not in the project `.gitignore`
-   (bootstrap was declined or never run), warn that the worktree directory is
-   not ignored before proceeding, and point at `bootstrap-dev-leash` /
-   adding `.worktrees/` under the `# dev-on-leash` heading.
+4. **Heed the warnings.** The script warns when `.worktrees/` is not in the
+   project `.gitignore` (bootstrap declined or never run) — point at
+   `bootstrap-dev-leash` / adding `.worktrees/` under the `# dev-on-leash`
+   heading.
 
-5. **Report.** Print the worktree path and remind that every `Edit`, `Write`,
-   and file `Read` for this change targets paths under `.worktrees/<slug>`,
-   while the session itself stays rooted in the main checkout.
+5. **Report.** Relay the script's output — worktree path and the base it
+   actually started from — and remind that every `Edit`, `Write`, and file
+   `Read` for this change targets paths under `.worktrees/<slug>`, while the
+   session itself stays rooted in the main checkout.
 
 ## Cleanup
 
@@ -74,7 +80,7 @@ PR, so the human decides.
 
 - This skill owns the **convention + guardrails**, not a worktree engine. It
   never reimplements `git worktree`.
-- It does NOT copy uncommitted WIP into the new worktree (start from `main`,
-  never copy WIP).
+- It does NOT copy uncommitted WIP into the new worktree (start from the
+  resolved base branch, never copy WIP).
 - It never weakens branch discipline; it makes the disciplined path comfortable
   when several changes are in flight.

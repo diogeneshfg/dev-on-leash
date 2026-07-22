@@ -52,3 +52,11 @@ def test_readme_documents_worktree_workflow():
     text = (root / "README.md").read_text(encoding="utf-8")
     assert "leash-start-work" in text
     assert ".worktrees/" in text
+
+
+def test_readme_documents_multi_branch_config():
+    # NB: follow this file's convention — `pathlib` + ROOT, no bare Path.
+    text = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert ".harness/branches.yaml" in text
+    assert "merge_target" in text
+    assert "--base" in text

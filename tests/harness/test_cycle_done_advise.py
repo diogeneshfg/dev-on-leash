@@ -90,3 +90,30 @@ def test_ignores_session_worktrees(tmp_path: Path):
     _add_worktree(repo, ".worktrees/sess", "session/abc123")
     reminders = advise_merged_worktrees(repo_root=repo)
     assert not any("session/abc123" in r for r in reminders), reminders
+
+
+def test_advises_branch_merged_into_declared_target_not_head(tmp_path: Path):
+    """Advisory must agree with finish_work: merged into dev while HEAD
+    is on main still earns a clean-up reminder."""
+    repo = tmp_path / "p"
+    _init_git_repo(repo)
+    subprocess.check_call(["git", "branch", "dev"], cwd=repo)
+    wt = _add_worktree(repo, ".worktrees/x", "feat/x")
+    (wt / "f.txt").write_text("x\n", encoding="utf-8")
+    subprocess.check_call(["git", "add", "."], cwd=wt)
+    subprocess.check_call(["git", "commit", "-q", "-m", "wip"], cwd=wt)
+    subprocess.check_call(["git", "fetch", ".", "feat/x:dev"], cwd=repo)
+    (repo / ".harness").mkdir(exist_ok=True)
+    (repo / ".harness" / "branches.yaml").write_text(
+        "merge_target: dev\nlong_lived: [dev]\n", encoding="utf-8")
+    reminders = advise_merged_worktrees(repo_root=repo)
+    assert any("feat/x" in r for r in reminders), reminders
+
+
+def test_advisory_quiet_on_malformed_config(tmp_path: Path):
+    repo = tmp_path / "p"
+    _init_git_repo(repo)
+    (repo / ".harness").mkdir(exist_ok=True)
+    (repo / ".harness" / "branches.yaml").write_text("bogus: 1\n", encoding="utf-8")
+    # advisory never raises — enforcement (finish_work) surfaces the error
+    assert advise_merged_worktrees(repo_root=repo) == []

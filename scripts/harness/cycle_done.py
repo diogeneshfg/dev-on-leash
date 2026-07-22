@@ -28,6 +28,8 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from scripts.harness.branches import BranchConfigError, load_branch_config, prove_merged
+
 DEFAULT_EXCEPTIONS = REPO_ROOT / ".harness" / "exceptions.log"
 DEFAULT_GATES = REPO_ROOT / ".harness" / "gates"
 
@@ -141,15 +143,20 @@ def advise_merged_worktrees(*, repo_root: Path) -> list[str]:
 
     Only worktrees physically located under `<repo_root>/.worktrees/` are
     considered — that is the proactive layout this feature defines. The
-    location filter naturally excludes the primary checkout (which `git
-    branch --merged` would otherwise list as "merged into itself" whenever
-    HEAD is on a `<type>/<slug>` branch) and the sibling session worktrees.
-    `session/*` branches are additionally skipped as defense in depth.
+    location filter naturally excludes the primary checkout and the sibling
+    session worktrees; merged-ness itself is proven per-branch against the
+    configured merge target via `prove_merged`, not by HEAD-relative
+    `git branch --merged`. `session/*` branches are additionally skipped as
+    defense in depth.
     """
     reminders: list[str] = []
     worktrees_root = (repo_root / ".worktrees").resolve()
-    merged_raw = _git_out(["branch", "--merged"], repo_root)
-    merged = {b.strip().lstrip("*+ ").strip() for b in merged_raw.splitlines()}
+    try:
+        cfg = load_branch_config(repo_root)
+    except BranchConfigError:
+        # Advisory stays quiet on a bad config; finish_work (the
+        # enforcement half) raises the loud error.
+        return reminders
     for wt_path, branch in _worktree_branches(repo_root, prefix=None):
         if branch.startswith("session/"):
             continue  # session/* branches are not proactive worktrees
@@ -159,7 +166,7 @@ def advise_merged_worktrees(*, repo_root: Path) -> list[str]:
             under = False
         if not under:
             continue  # only proactive .worktrees/<slug> worktrees
-        if branch not in merged:
+        if prove_merged(repo_root, branch, cfg) is None:
             continue
         reminders.append(
             f"reminder: branch {branch} is merged — run "

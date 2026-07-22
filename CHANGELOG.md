@@ -8,6 +8,9 @@ versioned `## [X.Y.Z] — <date>` heading (see `docs/RELEASING.md`), so
 `[Unreleased]` only ever holds work that has not shipped in a release.
 
 ## [Unreleased]
+### 2026-07-22 — configurable-base-branch
+- Cycle closed: Configurable Base Branch Implementation Plan
+
 ### Added
 - **`/leash-update` + automatic staleness detection.** Consumer projects
   now carry `.harness/leash.json` (version + file-hash manifest, stamped

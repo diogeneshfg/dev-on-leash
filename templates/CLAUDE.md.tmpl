@@ -32,7 +32,7 @@ When in doubt, ask one short question: "Does this look like plan-first or direct
 
 Features ship as numbered cycles with a written plan in `docs/plans/` before any code. Plans live ~30–60 tasks each. Never start a cycle without one.
 
-**Cycle done = all of**: zero pending tasks in plan, integration suite green (0 failed), full test suite green, `migrate-smoke` green if migrations changed, pre-commit clean, manual smoke of the user-visible feature, branch merged to main.
+**Cycle done = all of**: zero pending tasks in plan, integration suite green (0 failed), full test suite green, `migrate-smoke` green if migrations changed, pre-commit clean, manual smoke of the user-visible feature, branch merged to the project's merge target (`.harness/branches.yaml`, default `{{BASE_BRANCH}}`).
 
 Use `scripts/harness/cycle_done.py --plan <file>` to close a cycle. Use `scripts/harness/validate_plan.py <file>` to validate a plan before starting it.
 
@@ -40,7 +40,7 @@ Use `scripts/harness/cycle_done.py --plan <file>` to close a cycle. Use `scripts
 
 To start a change in its own working directory (parallel branches without the
 stash-dance), invoke `/leash-start-work`. It creates `.worktrees/<slug>` on a
-`<type>/<slug>` branch off `main` — the physical form of "branch first, edit
+`<type>/<slug>` branch off `{{BASE_BRANCH}}` — the physical form of "branch first, edit
 after". Opt-in; it never weakens branch discipline. Remove the worktree after
 merge with `git worktree remove .worktrees/<slug>`.
 
@@ -50,7 +50,7 @@ The harness installs a **worktree leash**: a `PreToolUse` gate denies any
 `Edit`/`Write`/`MultiEdit`/`NotebookEdit` whose target is in the **main
 worktree**. All edits target files in a linked worktree — run
 `/leash-start-work` to create one (`.worktrees/<slug>` on `<type>/<slug>`
-from `main`), then edit the files there. This makes concurrent sessions safe
+from `{{BASE_BRANCH}}`), then edit the files there. This makes concurrent sessions safe
 by construction: each works in its own worktree, nobody edits the shared
 main tree. Clean up with `/leash-finish-work`.
 

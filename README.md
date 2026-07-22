@@ -130,15 +130,39 @@ comfortable, without the stash-dance.
 
 - **Bootstrap** offers to standardize a `.worktrees/` layout and adds
   `.worktrees/` to `.gitignore` under the `# dev-on-leash` heading.
-- **`/leash-start-work`** starts a change in its own worktree:
-  `git worktree add .worktrees/<slug> -b <type>/<slug> main` — run from the
-  main checkout, without moving the session (no `EnterWorktree` or other
-  session-relocating mechanisms).
+- **`/leash-start-work`** starts a change in its own worktree via the
+  mechanical backend, `python -m scripts.harness.start_work <type>/<slug>`,
+  run from the main checkout, without moving the session (no `EnterWorktree`
+  or other session-relocating mechanisms). The worktree starts from the
+  configured base branch (`.harness/branches.yaml`, default main/master; a
+  `--base <branch>` override is available) — see "Multi-branch projects"
+  below.
 - **`cycle_done.py`** prints an advisory reminder to `git worktree remove`
   once a `<type>/<slug>` branch is merged (it never removes feature worktrees
   for you).
 
 The worktree leash makes this the only path to writing — the main tree is read-only, so every change starts here.
+
+### Multi-branch projects (`.harness/branches.yaml`)
+
+Projects with several long-lived branches (dev / qa / homol / prod)
+declare them once:
+
+```yaml
+# .harness/branches.yaml  (optional — absent means classic main/master)
+base: prod                          # where new worktrees start
+merge_target: dev                   # where work branches land (delete-safety)
+long_lived: [dev, qa, homol, prod]  # protected, like main/master
+```
+
+- `/leash-start-work` starts worktrees from `base` (override per-invocation
+  with `--base <branch>`), fetching first and warning when the local base
+  trails its remote.
+- `/leash-finish-work` deletes a work branch only after proving it is an
+  ancestor of `merge_target` (local or remote-tracking) — squash-merged
+  branches are not provable; use `--keep-branch`.
+- Every `long_lived` branch is protected exactly like `main`: no direct
+  work, no worktree removal while checked out on one.
 
 ## Updating a bootstrapped project
 
