@@ -1,4 +1,5 @@
 """Tests for plugin templates."""
+import json
 import os
 import pathlib
 import re
@@ -110,3 +111,56 @@ def test_agents_template_documents_worktree_start_path():
 def test_claude_template_mentions_start_work():
     text = (ROOT / "templates" / "CLAUDE.md.tmpl").read_text(encoding="utf-8")
     assert "leash-start-work" in text
+
+
+def test_agents_tmpl_has_antagonist_critics_optional_block():
+    text = (ROOT / "templates" / "AGENTS.md.tmpl").read_text(encoding="utf-8")
+    assert "<!-- OPTIONAL:ANTAGONIST_CRITICS -->" in text
+    assert "<!-- /OPTIONAL:ANTAGONIST_CRITICS -->" in text
+    block = text.split("<!-- OPTIONAL:ANTAGONIST_CRITICS -->")[1] \
+                .split("<!-- /OPTIONAL:ANTAGONIST_CRITICS -->")[0]
+    assert ".harness/critics.json" in block          # single source of truth
+    assert "antagonist-critic" in block              # agent to dispatch
+    assert "one round" in block.lower()              # per presented version
+    assert "{{" not in block                         # no placeholders by design
+
+
+def test_agents_tmpl_critics_block_is_fully_removable():
+    # Spec: "fully removed on opt-out". Rendering is done by the bootstrap
+    # skill (an LLM), so what we can pin mechanically is removability: the
+    # markers appear exactly once, in order, and excising the marked span
+    # leaves a template with no trace of the feature.
+    text = (ROOT / "templates" / "AGENTS.md.tmpl").read_text(encoding="utf-8")
+    open_m = "<!-- OPTIONAL:ANTAGONIST_CRITICS -->"
+    close_m = "<!-- /OPTIONAL:ANTAGONIST_CRITICS -->"
+    assert text.count(open_m) == 1 and text.count(close_m) == 1
+    start, end = text.index(open_m), text.index(close_m) + len(close_m)
+    assert start < end
+    removed = text[:start] + text[end:]
+    assert "antagonist" not in removed.lower()
+    assert "critics.json" not in removed
+
+
+def test_settings_tmpl_registers_critic_reminder_posttooluse():
+    text = (ROOT / "templates" / "settings.json.tmpl").read_text(encoding="utf-8")
+    assert "PostToolUse" in text
+    assert "scripts.harness.critic_reminder" in text
+
+
+def test_settings_tmpl_renders_to_valid_json():
+    text = (ROOT / "templates" / "settings.json.tmpl").read_text(encoding="utf-8")
+    rendered = (
+        text.replace("{{TEST_RUNNER_COMMANDS}}", '"Bash(pytest*)"')
+            .replace("{{LINT_COMMANDS}}", '"Bash(ruff*)"')
+            .replace("{{TYPECHECK_COMMANDS}}", '"Bash(mypy*)"')
+            .replace("{{BUILD_COMMANDS}}", '"Bash(make*)"')
+    )
+    data = json.loads(rendered)
+    hooks = data["hooks"]["PostToolUse"]
+    assert any(
+        "critic_reminder" in h["command"]
+        for entry in hooks for h in entry["hooks"]
+    )
+    matcher = hooks[0]["matcher"]
+    for tool in ("Edit", "Write", "MultiEdit", "NotebookEdit"):
+        assert tool in matcher

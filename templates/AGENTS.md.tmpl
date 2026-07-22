@@ -125,6 +125,35 @@ A cycle is "done" only when `scripts/harness/cycle_done.py --plan <file>` exits 
 {{UI_RULES}}
 <!-- /OPTIONAL:UI_RULES -->
 
+<!-- OPTIONAL:ANTAGONIST_CRITICS -->
+## Antagonist critics on specs and plans (mandatory when configured)
+
+> **Source of truth:** `.harness/critics.json`. If that file is absent or
+> lists no models, this protocol is disabled — delete the file to turn the
+> feature off; edit its `models` list to change the critics.
+
+At the end of every spec creation and every plan creation — **before**
+asking the user to review the document — dispatch one `antagonist-critic`
+subagent per model listed in `.harness/critics.json`, in parallel, using
+the Agent tool's `model` override. Point each critic at the document path.
+Their sole job is to refute it.
+
+- **One round per presented version.** Substantial edits after a critique
+  round re-trigger it; the resolution edits themselves do not.
+- **Resolution:** fix every objection you can in the document. For each
+  objection you do not fix, record the justification. Present the user the
+  refined document plus a criticism → response summary.
+- **Failure:** if a critic dispatch fails (model unavailable), say so in
+  the summary and proceed with the critics that ran. If ALL critics fail,
+  tell the user explicitly that no adversarial review ran — never present
+  the document as if it had been critiqued.
+- **Scope:** plans live in `docs/plans/`; specs are any `*.md` under a
+  `specs/` directory (projects without a spec workflow simply never
+  exercise that half). If the session model equals a configured critic
+  model, the independence benefit shrinks to fresh-context adversarial
+  framing — still run it.
+<!-- /OPTIONAL:ANTAGONIST_CRITICS -->
+
 <!-- OPTIONAL:ARCHITECTURE -->
 ## Architecture
 
