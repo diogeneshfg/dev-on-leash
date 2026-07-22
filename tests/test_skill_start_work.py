@@ -23,20 +23,25 @@ def test_documents_type_slug_convention():
         assert t in text
 
 
-def test_branches_from_main():
+def test_invokes_mechanical_backend():
     text = SKILL_PATH.read_text(encoding="utf-8")
-    # The worktree branch is created from main/master, not HEAD.
-    assert "git worktree add .worktrees/" in text
-    assert "main" in text
+    assert "python -m scripts.harness.start_work" in text
+    assert "--base" in text
+
+
+def test_documents_base_resolution():
+    text = SKILL_PATH.read_text(encoding="utf-8")
+    # precedence: --base → .harness/branches.yaml → main/master
+    assert ".harness/branches.yaml" in text
+    assert "main" in text  # default without config
 
 
 def test_creates_worktree_without_moving_session():
     """Sessions rooted inside `.worktrees/<slug>` lose their history when
     the worktree is removed (history is keyed to the session root). The
-    skill must use plain `git worktree add` and forbid session-relocating
-    mechanisms such as EnterWorktree."""
+    skill must run the backend from the main checkout and forbid
+    session-relocating mechanisms such as EnterWorktree."""
     text = SKILL_PATH.read_text(encoding="utf-8")
-    assert "git worktree add .worktrees/<slug> -b <type>/<slug> main" in text
     assert "Do **not** use session-relocating mechanisms (`EnterWorktree`" in text
     assert "session stays" in text.lower() or "stays rooted" in text.lower()
 
