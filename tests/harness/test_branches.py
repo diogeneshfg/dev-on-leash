@@ -125,6 +125,22 @@ def test_non_mapping_top_level_rejected(tmp_path: Path):
         load_branch_config(repo)
 
 
+def test_long_lived_scalar_rejected(tmp_path: Path):
+    repo = tmp_path / "r"
+    _init_repo(repo)
+    _write_cfg(repo, "long_lived: dev\n")
+    with pytest.raises(BranchConfigError, match="must be a list"):
+        load_branch_config(repo)
+
+
+def test_base_non_string_rejected(tmp_path: Path):
+    repo = tmp_path / "r"
+    _init_repo(repo)
+    _write_cfg(repo, "base: 123\n")
+    with pytest.raises(BranchConfigError):
+        load_branch_config(repo)
+
+
 # --- prove_merged -------------------------------------------------------------
 
 def test_prove_merged_local_target(tmp_path: Path):

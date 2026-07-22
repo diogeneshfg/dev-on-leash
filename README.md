@@ -130,10 +130,13 @@ comfortable, without the stash-dance.
 
 - **Bootstrap** offers to standardize a `.worktrees/` layout and adds
   `.worktrees/` to `.gitignore` under the `# dev-on-leash` heading.
-- **`/leash-start-work`** starts a change in its own worktree:
-  `git worktree add .worktrees/<slug> -b <type>/<slug> main` — run from the
-  main checkout, without moving the session (no `EnterWorktree` or other
-  session-relocating mechanisms).
+- **`/leash-start-work`** starts a change in its own worktree via the
+  mechanical backend, `python -m scripts.harness.start_work <type>/<slug>`,
+  run from the main checkout, without moving the session (no `EnterWorktree`
+  or other session-relocating mechanisms). The worktree starts from the
+  configured base branch (`.harness/branches.yaml`, default main/master; a
+  `--base <branch>` override is available) — see "Multi-branch projects"
+  below.
 - **`cycle_done.py`** prints an advisory reminder to `git worktree remove`
   once a `<type>/<slug>` branch is merged (it never removes feature worktrees
   for you).

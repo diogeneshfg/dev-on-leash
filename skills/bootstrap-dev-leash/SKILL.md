@@ -151,6 +151,8 @@ committed:
   `allow_main_write` (worktree-leash one-shot escapes).
 - `.harness/allow-main-write` — transient one-shot escape marker (the
   gate consumes it on the next main-tree write).
+- `.harness/finish_audit.log` — audit log of proof-based branch deletions
+  by `finish_work`.
 
 Read the target project's `.gitignore` (create it if absent). Ensure
 these lines are present; add any that are missing, leaving the file
@@ -159,6 +161,7 @@ otherwise byte-identical:
 ```
 .harness/exceptions.log
 .harness/allow-main-write
+.harness/finish_audit.log
 ```
 
 If you must add lines, group them under a `# dev-on-leash` comment

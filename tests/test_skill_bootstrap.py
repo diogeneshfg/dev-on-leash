@@ -18,6 +18,7 @@ def test_skill_documents_gitignore_patch_for_runtime_files():
     # one-shot worktree-leash escape marker.
     assert ".harness/exceptions.log" in text
     assert ".harness/allow-main-write" in text
+    assert ".harness/finish_audit.log" in text
     assert ".gitignore" in text
 
 
@@ -45,7 +46,7 @@ def test_skill_worktrees_optin_is_conditional():
 
 
 def test_bootstrap_documents_branches_config():
-    text = Path("skills/bootstrap-dev-leash/SKILL.md").read_text(encoding="utf-8")
+    text = SKILL_PATH.read_text(encoding="utf-8")
     assert ".harness/branches.yaml" in text
     assert "{{BASE_BRANCH}}" in text
     assert "long_lived" in text

@@ -143,8 +143,11 @@ def advise_merged_worktrees(*, repo_root: Path) -> list[str]:
 
     Only worktrees physically located under `<repo_root>/.worktrees/` are
     considered — that is the proactive layout this feature defines. The
-    location filter naturally excludes the primary checkout (the primary checkout is excluded by location, and merged-ness is proven per-branch against the configured merge target via `prove_merged`), and the sibling session worktrees.
-    `session/*` branches are additionally skipped as defense in depth.
+    location filter naturally excludes the primary checkout and the sibling
+    session worktrees; merged-ness itself is proven per-branch against the
+    configured merge target via `prove_merged`, not by HEAD-relative
+    `git branch --merged`. `session/*` branches are additionally skipped as
+    defense in depth.
     """
     reminders: list[str] = []
     worktrees_root = (repo_root / ".worktrees").resolve()
