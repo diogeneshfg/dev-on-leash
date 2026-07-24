@@ -163,10 +163,22 @@ def test_merge_adds_missing_sessionstart_hook():
         "hooks": [{"type": "command",
                    "command": "python -m scripts.harness.session_gate"}]}]}}
     merged, added = merge_hooks(settings)
-    assert added == ["python -m scripts.harness.session_root_guard"]
+    assert "python -m scripts.harness.session_root_guard" in added
     ss = merged["hooks"]["SessionStart"]
     assert ss[0]["hooks"][0]["command"] == "python -m scripts.harness.session_root_guard"
     assert "matcher" not in ss[0]
+
+
+def test_merge_adds_missing_critic_reminder_hook():
+    """The critic PostToolUse hook is inert without .harness/critics.json,
+    so /leash-update always delivers the wiring; enabling stays opt-in."""
+    merged, added = merge_hooks({})
+    assert "python -m scripts.harness.critic_reminder" in added
+    pt = merged["hooks"]["PostToolUse"]
+    assert any(h["command"] == "python -m scripts.harness.critic_reminder"
+               for entry in pt for h in entry["hooks"])
+    assert all(entry.get("matcher") == "Edit|Write|MultiEdit|NotebookEdit"
+               for entry in pt)
 
 
 def test_merge_is_idempotent_and_preserves_user_entries():

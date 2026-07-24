@@ -20,6 +20,9 @@ REQUIRED_HOOKS: list[tuple[str, str | None, str]] = [
     ("SessionStart", None, "python -m scripts.harness.session_root_guard"),
     ("PreToolUse", "Edit|Write|MultiEdit|NotebookEdit",
      "python -m scripts.harness.session_gate"),
+    # Inert without .harness/critics.json — safe to wire everywhere.
+    ("PostToolUse", "Edit|Write|MultiEdit|NotebookEdit",
+     "python -m scripts.harness.critic_reminder"),
 ]
 
 TEMPLATE_PAIRS = [
