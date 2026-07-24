@@ -8,10 +8,24 @@ versioned `## [X.Y.Z] — <date>` heading (see `docs/RELEASING.md`), so
 `[Unreleased]` only ever holds work that has not shipped in a release.
 
 ## [Unreleased]
+
+## [0.6.0] — 2026-07-24
 ### 2026-07-22 — configurable-base-branch
-- Cycle closed: Configurable Base Branch Implementation Plan
+- Cycle closed: Configurable Base Branch Implementation Plan.
+  `.harness/branches.yaml` declares the base/merge-target branch;
+  `start_work.py` cuts worktree branches from the configured base and
+  `finish_work` proves merge ancestry against the configured target
+  (`prove_merged`), with `{{BASE_BRANCH}}` threaded through the templates
+  and the bootstrap interview.
 
 ### Added
+- **Opt-in antagonist critics on specs and plans.** A project-local
+  `antagonist-critic` agent plus `scripts/harness/critic_reminder.py`, a
+  `PostToolUse` hook (wired via `templates/settings.json.tmpl`) that
+  reminds the session to dispatch adversarial critics after a spec/plan
+  file is written. Advisory only, never blocks; `.harness/critics.json`
+  is the single source of truth (absent file = off). Bootstrap interviews
+  for it.
 - **`/leash-update` + automatic staleness detection.** Consumer projects
   now carry `.harness/leash.json` (version + file-hash manifest, stamped
   by init). A plugin-level SessionStart hook (`scripts/update_check.py`)
