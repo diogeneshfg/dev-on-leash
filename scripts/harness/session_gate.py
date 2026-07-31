@@ -1,13 +1,25 @@
-"""PreToolUse hook: the main worktree is read-only to write tools.
+"""PreToolUse hook: judge a write by its TARGET file's repo and mode.
 
-Stateless and git-based. A write whose target resolves into the *main*
-worktree is denied; the developer works in a linked worktree (created by
-/leash-start-work). A one-shot marker (.harness/allow-main-write)
-authorizes exactly one main-tree write and is consumed + logged.
+Stateless and git-based. The gate resolves the repo that owns the write
+target (not the session cwd), then applies that repo's own workflow
+mode from `.harness/branches.yaml`:
 
-No lockfiles, no PIDs, no session election — that machinery mis-elected
-two primaries on Windows (non-monotonic PIDs). Concurrency is now
-prevented by construction: no session may write the main tree.
+- worktree mode: the main worktree is read-only; write from a linked
+  worktree (created by /leash-start-work) instead.
+- branch mode: writes are only allowed while HEAD is on a conforming
+  <type>/<slug> work branch.
+
+Scope: only leash-managed repos (main worktree contains a `.harness/`
+directory) are gated at all; every other repo — a cloned dependency, a
+sibling project without the harness — is left completely untouched,
+never mutated. A one-shot marker (.harness/allow-main-write) in the
+TARGET repo authorizes exactly one write there and is consumed + logged
+to that repo's .harness/exceptions.log.
+
+Malformed `.harness/branches.yaml` fails CLOSED (denied, with the
+parse error as the reason) — a broken config must not silently disable
+the gate. Only when git itself is unusable does the gate fail open,
+and that is audited to the project dir's exceptions.log.
 
 Hook protocol: read JSON from stdin {tool_name, tool_input, ...}, print
 JSON {"decision": "allow"|"deny", "reason": str} on stdout. Exit 0.
@@ -22,18 +34,40 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from scripts.harness.branches import (
+    BranchConfigError,
+    WORK_BRANCH_RE,
+    load_branch_config,
+)
+from scripts.harness.repo_resolve import RepoResolveError, resolve_repo
+
 GATED_TOOLS = frozenset({"Edit", "Write", "MultiEdit", "NotebookEdit"})
 
 MARKER_NAME = "allow-main-write"
 EXCEPTIONS_LOG = "exceptions.log"
 
-DENY_MESSAGE = (
-    "SESSION LEASH: the main worktree is read-only. Start your change in a "
-    "worktree with /leash-start-work, then write there. To make a one-off "
-    "write to the main tree, run:\n"
-    '  python -m scripts.harness.allow_main_write "<reason>"\n'
+DENY_MESSAGE_WORKTREE = (
+    "SESSION LEASH: this repo's main worktree is read-only. Start your "
+    "change in a worktree with /leash-start-work (pass --repo-root for "
+    "this repo), then write there. To make a one-off write to the main "
+    "tree, run:\n"
+    '  python -m scripts.harness.allow_main_write "<reason>" '
+    "--repo-root <this repo>\n"
     "and retry — it authorizes exactly one main-tree write and is logged."
 )
+
+
+def deny_message_branch(head: str | None) -> str:
+    where = f"HEAD is on {head!r}" if head else "HEAD is detached/unborn"
+    return (
+        f"SESSION LEASH (branch mode): {where}, not on a <type>/<slug> "
+        "work branch. Start your change with /leash-start-work "
+        "(pass --repo-root for this repo), then retry. For a one-off "
+        "write here, run:\n"
+        '  python -m scripts.harness.allow_main_write "<reason>" '
+        "--repo-root <this repo>\n"
+        "and retry — it authorizes exactly one write and is logged."
+    )
 
 
 @dataclass(frozen=True)
@@ -89,23 +123,6 @@ def _resolve_target(tool_input: dict) -> Path | None:
         return None
 
 
-def _containing_worktree(target: Path, worktrees: list[Path]) -> Path | None:
-    """Longest path-component-aware prefix match, or None if outside all.
-
-    Uses Path.is_relative_to (component-aware) so a sibling whose name
-    merely starts with a worktree name is NOT treated as inside it.
-    """
-    best: Path | None = None
-    best_len = -1
-    for wt in worktrees:
-        if target == wt or target.is_relative_to(wt):
-            n = len(wt.parts)
-            if n > best_len:
-                best = wt
-                best_len = n
-    return best
-
-
 def _append_log(log_path: Path, *, kind: str, gate_pid: int, target: Path | None) -> None:
     log_path.parent.mkdir(parents=True, exist_ok=True)
     line = f"{_now_iso()}  {kind}  pid={gate_pid}  target={target}\n"
@@ -113,45 +130,89 @@ def _append_log(log_path: Path, *, kind: str, gate_pid: int, target: Path | None
         fh.write(line)
 
 
-def decide(
-    *,
-    tool_name: str,
-    tool_input: dict,
-    worktrees: list[Path] | None,
-    marker_path: Path,
-    log_path: Path,
-    gate_pid: int = 0,
-) -> Decision:
-    """Decide allow/deny. Consumes the marker + logs on a sanctioned main write."""
+def _head_branch(repo_root: Path) -> str | None:
+    """Current branch name; None on detached or unborn HEAD."""
+    try:
+        proc = subprocess.run(
+            ["git", "-C", str(repo_root), "rev-parse",
+             "--abbrev-ref", "HEAD"],
+            capture_output=True, text=True,
+        )
+    except (OSError, ValueError):
+        return None
+    name = proc.stdout.strip()
+    if proc.returncode != 0 or not name or name == "HEAD":
+        return None
+    return name
+
+
+def _consume_marker(repo_root: Path, target: Path, gate_pid: int) -> bool:
+    marker = repo_root / ".harness" / MARKER_NAME
+    if not marker.exists():
+        return False
+    try:
+        marker.unlink()
+    except FileNotFoundError:
+        pass
+    _append_log(repo_root / ".harness" / EXCEPTIONS_LOG,
+                kind="main-write", gate_pid=gate_pid, target=target)
+    return True
+
+
+def _failopen_log(target: Path | None, gate_pid: int) -> None:
+    base = Path(os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd())
+    try:
+        _append_log(base / ".harness" / EXCEPTIONS_LOG,
+                    kind="gate-failopen", gate_pid=gate_pid, target=target)
+    except OSError:
+        pass
+
+
+def decide(*, tool_name: str, tool_input: dict, gate_pid: int = 0) -> Decision:
+    """Judge a write by the TARGET file's repo and that repo's mode.
+
+    Scope: only leash-managed repos (main worktree has .harness/) are
+    gated; every other repo behaves exactly as before this gate existed.
+    """
     if tool_name not in GATED_TOOLS:
         return Decision(allow=True, reason="")
     target = _resolve_target(tool_input)
     if target is None:
         return Decision(allow=True, reason="")
-    if not worktrees:
-        return Decision(allow=True, reason="")  # fail-open (main() logs the warning)
-    main_wt = worktrees[0]
-    containing = _containing_worktree(target, worktrees)
-    if containing is None:
-        return Decision(allow=True, reason="")  # outside the repo entirely
-    if containing != main_wt:
-        return Decision(allow=True, reason="")  # a linked worktree — allowed
-    # target is in the main worktree
-    if marker_path.exists():
-        try:
-            marker_path.unlink()
-        except FileNotFoundError:
-            pass
-        _append_log(log_path, kind="main-write", gate_pid=gate_pid, target=target)
+    try:
+        info = resolve_repo(target)
+    except RepoResolveError:
+        _failopen_log(target, gate_pid)          # git unusable: fail open, audited
+        return Decision(allow=True, reason="")
+    if info is None:
+        return Decision(allow=True, reason="")   # outside any repo
+    if info.is_linked:
+        return Decision(allow=True, reason="")   # linked worktree: both modes
+    main_wt = info.main_worktree
+    if not (main_wt / ".harness").is_dir():
+        return Decision(allow=True, reason="")   # not leash-managed: untouched
+    try:
+        cfg = load_branch_config(main_wt)
+    except BranchConfigError as exc:
+        # Fail CLOSED: one broken YAML must not silently disable the gate.
+        return Decision(allow=False, reason=(
+            f"SESSION LEASH: cannot judge this write — {exc}. "
+            "Fix .harness/branches.yaml and retry."
+        ))
+    if cfg.workflow == "branch":
+        head = _head_branch(main_wt)
+        if head is not None and WORK_BRANCH_RE.match(head):
+            return Decision(allow=True, reason="")
+        if _consume_marker(main_wt, target, gate_pid):
+            return Decision(allow=True, reason="one-shot write authorized")
+        return Decision(allow=False, reason=deny_message_branch(head))
+    # worktree mode: the main tree is read-only
+    if _consume_marker(main_wt, target, gate_pid):
         return Decision(allow=True, reason="one-shot main-tree write authorized")
-    return Decision(allow=False, reason=DENY_MESSAGE)
+    return Decision(allow=False, reason=DENY_MESSAGE_WORKTREE)
 
 
 def main(argv: list[str]) -> int:
-    cwd = Path(os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()).resolve()
-    harness = cwd / ".harness"
-    marker_path = harness / MARKER_NAME
-    log_path = harness / EXCEPTIONS_LOG
     try:
         payload = json.loads(sys.stdin.read() or "{}")
     except json.JSONDecodeError:
@@ -161,21 +222,7 @@ def main(argv: list[str]) -> int:
     if not isinstance(tool_input, dict):
         tool_input = {}
 
-    worktrees: list[Path] | None = None
-    if tool_name in GATED_TOOLS and _resolve_target(tool_input) is not None:
-        worktrees = list_worktrees(cwd)
-        if worktrees is None:
-            try:
-                _append_log(log_path, kind="gate-failopen",
-                            gate_pid=os.getppid(),
-                            target=_resolve_target(tool_input))
-            except OSError:
-                pass
-
-    d = decide(
-        tool_name=tool_name, tool_input=tool_input, worktrees=worktrees,
-        marker_path=marker_path, log_path=log_path, gate_pid=os.getppid(),
-    )
+    d = decide(tool_name=tool_name, tool_input=tool_input, gate_pid=os.getppid())
     sys.stdout.write(d.to_json())
     sys.stdout.flush()
     return 0
