@@ -1,11 +1,12 @@
-"""leash-start-work backend: create `.worktrees/<slug>` from the right base.
+"""leash-start-work backend: create `.worktrees/<slug>` or branch from the right base.
 
 Mechanical gate for the leash-start-work skill (gates-over-prose): it
 validates the `<type>/<slug>` name, resolves the base branch
 (`--base` → `.harness/branches.yaml` → detected main/master), does a
-fetch-and-warn freshness pass, and creates the worktree without moving
-the session. Refusals exit non-zero with a clear message; offline work
-never blocks (fetch failures warn and fall back to local refs).
+fetch-and-warn freshness pass, and creates the worktree (worktree mode)
+or checks out a branch (branch mode) without moving the session in branch
+mode. Refusals exit non-zero with a clear message; offline work never
+blocks (fetch failures warn and fall back to local refs).
 """
 from __future__ import annotations
 
@@ -104,6 +105,41 @@ def _default_warn(msg: str) -> None:
     print(f"warn: {msg}", file=sys.stderr)
 
 
+def _start_branch_mode(
+    *, repo_root: Path, branch: str, start_point: str,
+    no_track: bool, warn,
+) -> Path:
+    status = _run(["status", "--porcelain"], repo_root).stdout.splitlines()
+    tracked = [ln for ln in status if ln and not ln.startswith("??")]
+    untracked = [ln[3:] for ln in status if ln.startswith("??")]
+    if tracked:
+        raise StartWorkError(
+            "working tree has tracked changes (staged or unstaged); "
+            "commit or stash them first — branch mode never carries WIP "
+            "into a new branch"
+        )
+    if untracked:
+        warn("untracked files present (they follow you onto the new "
+             "branch): " + ", ".join(untracked))
+    head = _run(["rev-parse", "--abbrev-ref", "HEAD"], repo_root,
+                check=False).stdout.strip()
+    if WORK_BRANCH_RE.match(head):
+        raise StartWorkError(
+            f"already on work branch {head!r} — one demand at a time per "
+            "repo in branch mode; finish it first (/leash-finish-work) or "
+            "use worktree mode for parallel work"
+        )
+    if ref_exists(repo_root, f"refs/heads/{branch}"):
+        raise StartWorkError(f"branch {branch!r} already exists")
+    cmd = ["checkout"]
+    if no_track:
+        cmd.append("--no-track")
+    cmd += ["-b", branch, start_point]
+    _run(cmd, repo_root)
+    print(f"Checked out {branch} from {start_point} (branch mode)")
+    return repo_root
+
+
 def start_work(
     *,
     repo_root: Path,
@@ -111,6 +147,10 @@ def start_work(
     base_override: str | None = None,
     warn=_default_warn,
 ) -> Path:
+    """Start a new work branch.
+
+    Returns the created worktree path (worktree mode) or the repo root (branch mode).
+    """
     m = WORK_BRANCH_RE.match(branch)
     if not m:
         raise StartWorkError(
@@ -123,10 +163,12 @@ def start_work(
     except BranchConfigError as exc:
         raise StartWorkError(str(exc)) from exc
     if slug in cfg.protected:
-        raise StartWorkError(
-            f"slug {slug!r} collides with protected branch {slug!r} "
-            f"(would create .worktrees/{slug}); pick another slug"
-        )
+        if cfg.workflow == "branch":
+            detail = f"branch {branch!r} shadows protected branch {slug!r}"
+        else:
+            detail = (f"would create .worktrees/{slug}, colliding with "
+                      f"protected branch {slug!r}")
+        raise StartWorkError(f"slug {slug!r}: {detail}; pick another slug")
     base = base_override or cfg.base
     # protected == long_lived ∪ {main, master}: exactly the allowed bases.
     if base not in cfg.protected:
@@ -143,6 +185,12 @@ def start_work(
     else:
         warn("no remote detected; skipping freshness fetch")
     start_point, no_track = resolve_start_point(repo_root, base, remote, warn)
+    if cfg.workflow == "branch":
+        return _start_branch_mode(
+            repo_root=repo_root, branch=branch,
+            start_point=start_point, no_track=no_track, warn=warn,
+        )
+    # worktree-mode tail:
     wt = repo_root / ".worktrees" / slug
     if wt.exists():
         raise StartWorkError(f"worktree already exists: {wt}")

@@ -177,3 +177,120 @@ def test_start_work_prints_echo_line(tmp_path: Path, capsys):
     start_work(repo_root=repo, branch="feat/echo-check")
     out = capsys.readouterr().out
     assert "repo: " in out and "base: main" in out and "mode: worktree" in out
+
+
+def _cfg_branch_mode(repo: Path, extra: str = "") -> None:
+    (repo / ".harness").mkdir(exist_ok=True)
+    (repo / ".harness" / "branches.yaml").write_text(
+        "workflow: branch\n" + extra, encoding="utf-8"
+    )
+
+
+def _head(repo: Path) -> str:
+    return subprocess.check_output(
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=repo, text=True
+    ).strip()
+
+
+def test_branch_mode_checks_out_work_branch(tmp_path: Path):
+    repo = tmp_path / "r"
+    _init_repo(repo)
+    _cfg_branch_mode(repo)
+    got = start_work(repo_root=repo, branch="feat/x-one")
+    assert got == repo
+    assert _head(repo) == "feat/x-one"
+    assert not (repo / ".worktrees").exists()
+
+
+def test_branch_mode_cuts_from_configured_base(tmp_path: Path):
+    # the field failure: the branch MUST come off the declared base
+    repo = tmp_path / "r"
+    _init_repo(repo)
+    subprocess.check_call(["git", "branch", "prod"], cwd=repo)
+    (repo / "main-only.txt").write_text("m\n", encoding="utf-8")
+    subprocess.check_call(["git", "add", "."], cwd=repo)
+    subprocess.check_call(["git", "commit", "-q", "-m", "main moves on"], cwd=repo)
+    _cfg_branch_mode(repo, "base: prod\nlong_lived: [prod]\n")
+    start_work(repo_root=repo, branch="feat/from-prod")
+    assert _head(repo) == "feat/from-prod"
+    prod_sha = subprocess.check_output(
+        ["git", "rev-parse", "prod"], cwd=repo, text=True).strip()
+    head_sha = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip()
+    assert head_sha == prod_sha        # cut from prod, not from main's tip
+
+
+def test_branch_mode_behind_base_uses_remote_no_upstream(tmp_path: Path):
+    # mirror of the worktree-mode no-track test: stale local base
+    origin = tmp_path / "origin"
+    _init_repo(origin)
+    subprocess.check_call(["git", "branch", "prod"], cwd=origin)
+    clone = tmp_path / "clone"
+    subprocess.check_call(["git", "clone", "-q", str(origin), str(clone)])
+    subprocess.check_call(["git", "config", "user.email", "d@d"], cwd=clone)
+    subprocess.check_call(["git", "config", "user.name", "d"], cwd=clone)
+    subprocess.check_call(["git", "checkout", "-q", "-b", "prod", "origin/prod"],
+                          cwd=clone)
+    subprocess.check_call(["git", "checkout", "-q", "main"], cwd=clone)
+    # advance origin/prod so the clone's local prod is behind
+    subprocess.check_call(["git", "checkout", "-q", "prod"], cwd=origin)
+    (origin / "newer.txt").write_text("n\n", encoding="utf-8")
+    subprocess.check_call(["git", "add", "."], cwd=origin)
+    subprocess.check_call(["git", "commit", "-q", "-m", "newer"], cwd=origin)
+    _cfg_branch_mode(clone, "base: prod\nlong_lived: [prod]\n")
+    warnings: list[str] = []
+    start_work(repo_root=clone, branch="feat/fresh", warn=warnings.append)
+    assert _head(clone) == "feat/fresh"
+    upstream = subprocess.run(
+        ["git", "rev-parse", "--abbrev-ref", "feat/fresh@{upstream}"],
+        cwd=clone, capture_output=True)
+    assert upstream.returncode != 0    # --no-track: no upstream set
+    assert any("behind" in w for w in warnings)
+
+
+def test_branch_mode_refuses_tracked_changes(tmp_path: Path):
+    repo = tmp_path / "r"
+    _init_repo(repo)
+    _cfg_branch_mode(repo)
+    (repo / "seed").write_text("dirty\n", encoding="utf-8")
+    with pytest.raises(StartWorkError, match="tracked changes"):
+        start_work(repo_root=repo, branch="feat/x-one")
+
+
+def test_branch_mode_untracked_only_warns_not_refuses(tmp_path: Path):
+    repo = tmp_path / "r"
+    _init_repo(repo)
+    _cfg_branch_mode(repo)
+    (repo / "scratch.env").write_text("x\n", encoding="utf-8")
+    warnings: list[str] = []
+    start_work(repo_root=repo, branch="feat/x-one", warn=warnings.append)
+    assert _head(repo) == "feat/x-one"
+    assert any("scratch.env" in w for w in warnings)
+
+
+def test_branch_mode_refuses_when_already_on_work_branch(tmp_path: Path):
+    repo = tmp_path / "r"
+    _init_repo(repo)
+    _cfg_branch_mode(repo)
+    start_work(repo_root=repo, branch="feat/x-one")
+    with pytest.raises(StartWorkError, match="already on work branch"):
+        start_work(repo_root=repo, branch="feat/x-two")
+
+
+def test_branch_mode_refuses_existing_branch(tmp_path: Path):
+    repo = tmp_path / "r"
+    _init_repo(repo)
+    subprocess.check_call(["git", "branch", "feat/x-one"], cwd=repo)
+    _cfg_branch_mode(repo)
+    with pytest.raises(StartWorkError, match="already exists"):
+        start_work(repo_root=repo, branch="feat/x-one")
+
+
+def test_protected_slug_message_is_mode_appropriate(tmp_path: Path):
+    repo = tmp_path / "r"
+    _init_repo(repo)
+    _cfg_branch_mode(repo, "long_lived: [dev]\n")
+    with pytest.raises(StartWorkError) as e:
+        start_work(repo_root=repo, branch="feat/dev")
+    assert ".worktrees" not in str(e.value)     # no false worktree claim
+    assert "protected branch" in str(e.value)
