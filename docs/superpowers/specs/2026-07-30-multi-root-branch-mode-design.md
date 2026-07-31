@@ -165,10 +165,16 @@ and applies that repo's mode:
   fail-open would let one broken YAML file silently disable protection;
   deny surfaces the problem on the first write. (This is the
   hook-context refinement of "malformed config is a hard error".)
+- **Scope: leash-managed repos only.** The gate enforces only when the
+  target's main worktree contains a `.harness/` directory. Any other
+  repo (a cloned dependency, a scratch checkout, an unrelated project)
+  is allowed — matching today's behavior, where writes outside the
+  session repo were never denied. Without this scoping, the per-target
+  rules would make every git repo on the machine read-only.
 - A target outside any git repo: allowed. Git failure after the
-  nearest-existing-ancestor step: fail-open with a logged warning
-  (genuinely unchanged semantics, now that new-path targets no longer
-  reach it).
+  nearest-existing-ancestor step (git binary unusable): fail-open with a
+  logged warning (genuinely unchanged semantics, now that new-path
+  targets no longer reach it).
 - Cost note: this adds 1–2 `git rev-parse` calls plus a YAML read per
   gated write, and makes the hook depend on PyYAML (already a harness
   dependency via `branches.py`). Accepted: gated writes are
@@ -196,9 +202,10 @@ README and SKILL.md state this requirement explicitly.
   current HEAD is used when it matches `<type>/<slug>`; otherwise
   refuse.
 - Same merge proof as today (`prove_merged` against `merge_target`,
-  local and remote-tracking refs); refuses a dirty tree or an
-  unproven-merged branch; `--keep-branch` remains the escape for
-  squash/rebase merges.
+  local and remote-tracking refs); refuses **tracked** changes (staged
+  or unstaged — untracked files warn, never block, consistent with
+  branch-mode `start_work`) or an unproven-merged branch;
+  `--keep-branch` remains the escape for squash/rebase merges.
 - On success: checks out the **`merge_target`** branch (`dev` in the
   field-test flow) and deletes the work branch. Rationale (user
   decision): the checkout must never land on `prod`; `merge_target` is
