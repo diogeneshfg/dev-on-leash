@@ -40,3 +40,11 @@ bootstrapped target project (it needs `.harness/`).
 - Refusal is the default for any divergent file; `--force` is per-file
   and deliberate. (`--init-manifest` exists for the init scripts, not
   for this flow.)
+
+## 0.7.0 notes
+
+This release delivers `scripts/harness/repo_resolve.py` (picked up by the
+existing `scripts/harness/*.py` glob) and the rewritten `session_gate.py` with
+multi-repo and branch-mode support. The `workflow: branch` config key requires
+the updated harness — run `/leash-update` BEFORE adding `workflow:` to
+`.harness/branches.yaml`.

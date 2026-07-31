@@ -164,6 +164,47 @@ long_lived: [dev, qa, homol, prod]  # protected, like main/master
 - Every `long_lived` branch is protected exactly like `main`: no direct
   work, no worktree removal while checked out on one.
 
+### Workflow modes: `worktree` (default) vs `branch`
+
+`.harness/branches.yaml` accepts `workflow: worktree | branch` to select between two modes:
+
+- **worktree** (default): every demand gets `.worktrees/<slug>`; the
+  main checkout is read-only. Choose it when one repo carries several
+  parallel demands.
+- **branch**: `/leash-start-work` does a disciplined `checkout -b` off
+  the configured base instead; the write gate allows edits only while
+  HEAD is on a `<type>/<slug>` branch. One demand at a time per repo,
+  and **one session per repo** — branch mode does not protect two
+  concurrent sessions sharing a checkout. `/leash-finish-work` proves
+  the merge and lands on `merge_target` (never the base). Tracked
+  changes block start/finish; untracked scratch files only warn.
+
+Example:
+```yaml
+# .harness/branches.yaml
+base: main
+merge_target: develop
+workflow: branch          # single branch per session
+```
+
+### Multi-root workspaces (several repos, one session)
+
+All harness CLIs take `--repo-root`. In a multi-root workspace, ALWAYS
+pass it — the CLIs mechanically refuse to guess when they can detect
+the layout (sibling leash-managed repos, or a workspace folder with
+child repos) and list the candidates; layouts spanning unrelated
+parent folders are not detectable, which is why the explicit flag is
+the rule, not the fallback. The write gate judges every edit by the
+repo that owns the target file, so sibling leash-managed repos are
+protected too; repos without `.harness/` are never touched.
+Requirement: the session must be rooted in a leash-bootstrapped repo
+(its hook wiring serves the whole workspace); keep harnesses aligned
+with `/leash-update`.
+
+**Migration note:** update the harness (`/leash-update`) BEFORE adding
+`workflow:` to `.harness/branches.yaml` — older harness scripts hard-fail
+on unknown keys.
+
 ## Antagonist critics on specs and plans (opt-in)
 
 Bootstrap can enable an adversarial review step: at the end of every spec

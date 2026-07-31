@@ -62,3 +62,8 @@ def test_bootstrap_documents_antagonist_critics_opt_in():
     # Empty model selection must be treated as opting out (exact phrase
     # from the skill — a bare "no" would match all over the file).
     assert "zero models selected is treated as answering" in text.lower()
+
+
+def test_bootstrap_interviews_workflow_mode():
+    text = SKILL_PATH.read_text(encoding="utf-8")
+    assert "workflow" in text and "branch" in text

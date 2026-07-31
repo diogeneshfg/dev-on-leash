@@ -159,6 +159,12 @@ def test_settings_tmpl_registers_critic_reminder_posttooluse():
     assert "scripts.harness.critic_reminder" in text
 
 
+def test_claude_tmpl_mentions_branch_mode():
+    from pathlib import Path
+    text = Path("templates/CLAUDE.md.tmpl").read_text(encoding="utf-8")
+    assert "workflow: branch" in text
+
+
 def test_settings_tmpl_renders_to_valid_json():
     text = (ROOT / "templates" / "settings.json.tmpl").read_text(encoding="utf-8")
     rendered = (

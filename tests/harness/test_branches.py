@@ -193,3 +193,47 @@ def test_prove_merged_unmerged_is_none(tmp_path: Path):
     _git(repo, "checkout", "-q", "main")
     cfg = load_branch_config(repo)
     assert prove_merged(repo, "feat/x", cfg) is None
+
+
+# --- workflow key -------------------------------------------------------------
+
+def test_workflow_defaults_to_worktree_when_file_missing(tmp_path: Path):
+    repo = tmp_path / "r"
+    _init_repo(repo)
+    assert load_branch_config(repo).workflow == "worktree"
+
+
+def test_workflow_defaults_to_worktree_when_key_absent(tmp_path: Path):
+    repo = tmp_path / "r"
+    _init_repo(repo)
+    _write_cfg(repo, "base: main\n")
+    assert load_branch_config(repo).workflow == "worktree"
+
+
+def test_workflow_empty_value_defaults_not_errors(tmp_path: Path):
+    repo = tmp_path / "r"
+    _init_repo(repo)
+    _write_cfg(repo, "workflow:\n")
+    assert load_branch_config(repo).workflow == "worktree"
+
+
+def test_workflow_branch_accepted(tmp_path: Path):
+    repo = tmp_path / "r"
+    _init_repo(repo)
+    _write_cfg(repo, "workflow: branch\n")
+    assert load_branch_config(repo).workflow == "branch"
+
+
+def test_workflow_junk_is_hard_error(tmp_path: Path):
+    repo = tmp_path / "r"
+    _init_repo(repo)
+    _write_cfg(repo, "workflow: yolo\n")
+    with pytest.raises(BranchConfigError, match="workflow"):
+        load_branch_config(repo)
+
+
+def test_work_branch_re_exported():
+    from scripts.harness.branches import WORK_BRANCH_RE
+    assert WORK_BRANCH_RE.match("feat/my-slug")
+    assert not WORK_BRANCH_RE.match("dev")
+    assert not WORK_BRANCH_RE.match("hotfix/x")
