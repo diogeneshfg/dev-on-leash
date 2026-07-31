@@ -147,3 +147,127 @@ def test_malformed_branches_yaml_is_hard_error(tmp_path: Path):
     _add_worktree(repo, "feat-x", "feat/x")
     with pytest.raises(FinishWorkError, match="unknown key"):
         finish_work(repo_root=repo, slug="feat-x")
+
+
+from scripts.harness.finish_work import FinishWorkError, finish_branch
+
+
+def _cfg_branch(repo: Path) -> None:
+    (repo / ".harness").mkdir(exist_ok=True)
+    (repo / ".harness" / "branches.yaml").write_text(
+        "workflow: branch\nlong_lived: [prod, dev]\nbase: prod\nmerge_target: dev\n",
+        encoding="utf-8",
+    )
+    subprocess.check_call(["git", "add", ".harness"], cwd=repo)
+    subprocess.check_call(["git", "commit", "-q", "-m", "cfg"], cwd=repo)
+
+
+def _seed_envs(repo: Path) -> None:
+    subprocess.check_call(["git", "branch", "prod"], cwd=repo)
+    subprocess.check_call(["git", "branch", "dev"], cwd=repo)
+
+
+def _work_then_merge(repo: Path) -> None:
+    subprocess.check_call(["git", "checkout", "-q", "-b", "feat/w", "prod"], cwd=repo)
+    (repo / "w.txt").write_text("w\n", encoding="utf-8")
+    subprocess.check_call(["git", "add", "."], cwd=repo)
+    subprocess.check_call(["git", "commit", "-q", "-m", "w"], cwd=repo)
+    subprocess.check_call(["git", "checkout", "-q", "dev"], cwd=repo)
+    subprocess.check_call(["git", "merge", "-q", "--no-ff", "feat/w"], cwd=repo)
+    subprocess.check_call(["git", "checkout", "-q", "feat/w"], cwd=repo)
+
+
+def _head(repo: Path) -> str:
+    return subprocess.check_output(
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=repo, text=True
+    ).strip()
+
+
+def test_finish_branch_defaults_to_head_and_ends_on_merge_target(tmp_path):
+    repo = tmp_path / "r"
+    _init_repo(repo)
+    _cfg_branch(repo)
+    _seed_envs(repo)
+    _work_then_merge(repo)
+    got = finish_branch(repo_root=repo, branch=None)
+    assert got == "feat/w"
+    assert _head(repo) == "dev"          # merge_target — never prod/base
+    out = subprocess.run(["git", "rev-parse", "--verify", "refs/heads/feat/w"],
+                         cwd=repo, capture_output=True)
+    assert out.returncode != 0           # branch deleted
+    assert (repo / ".harness" / "finish_audit.log").exists()
+
+
+def test_finish_branch_untracked_files_do_not_block(tmp_path):
+    # the .env-style scratch file the mode was designed to tolerate
+    repo = tmp_path / "r"
+    _init_repo(repo)
+    _cfg_branch(repo)
+    _seed_envs(repo)
+    _work_then_merge(repo)
+    (repo / "scratch.env").write_text("x\n", encoding="utf-8")
+    warnings: list[str] = []
+    got = finish_branch(repo_root=repo, branch=None, warn=warnings.append)
+    assert got == "feat/w"
+    assert _head(repo) == "dev"
+    assert any("scratch.env" in w for w in warnings)
+
+
+def test_finish_branch_refuses_unmerged(tmp_path):
+    repo = tmp_path / "r"
+    _init_repo(repo)
+    _cfg_branch(repo)
+    _seed_envs(repo)
+    subprocess.check_call(["git", "checkout", "-q", "-b", "feat/u", "prod"], cwd=repo)
+    (repo / "u.txt").write_text("u\n", encoding="utf-8")
+    subprocess.check_call(["git", "add", "."], cwd=repo)
+    subprocess.check_call(["git", "commit", "-q", "-m", "u"], cwd=repo)
+    with pytest.raises(FinishWorkError, match="unmerged"):
+        finish_branch(repo_root=repo, branch=None)
+
+
+def test_finish_branch_keep_branch(tmp_path):
+    repo = tmp_path / "r"
+    _init_repo(repo)
+    _cfg_branch(repo)
+    _seed_envs(repo)
+    subprocess.check_call(["git", "checkout", "-q", "-b", "feat/k", "prod"], cwd=repo)
+    got = finish_branch(repo_root=repo, branch=None, keep_branch=True)
+    assert got == "feat/k"
+    assert _head(repo) == "dev"
+    out = subprocess.run(["git", "rev-parse", "--verify", "refs/heads/feat/k"],
+                         cwd=repo, capture_output=True)
+    assert out.returncode == 0           # kept
+
+
+def test_finish_branch_refuses_tracked_dirty(tmp_path):
+    repo = tmp_path / "r"
+    _init_repo(repo)
+    _cfg_branch(repo)
+    _seed_envs(repo)
+    _work_then_merge(repo)
+    (repo / "seed").write_text("dirty\n", encoding="utf-8")
+    with pytest.raises(FinishWorkError, match="tracked changes"):
+        finish_branch(repo_root=repo, branch=None)
+
+
+def test_finish_branch_refuses_head_not_work_branch_and_no_arg(tmp_path):
+    repo = tmp_path / "r"
+    _init_repo(repo)
+    _cfg_branch(repo)
+    _seed_envs(repo)
+    subprocess.check_call(["git", "checkout", "-q", "dev"], cwd=repo)
+    with pytest.raises(FinishWorkError, match="name the branch"):
+        finish_branch(repo_root=repo, branch=None)
+
+
+def test_finish_branch_by_name_from_elsewhere(tmp_path):
+    repo = tmp_path / "r"
+    _init_repo(repo)
+    _cfg_branch(repo)
+    _seed_envs(repo)
+    _work_then_merge(repo)
+    subprocess.check_call(["git", "checkout", "-q", "main"], cwd=repo)
+    got = finish_branch(repo_root=repo, branch="feat/w")
+    assert got == "feat/w"
+    assert _head(repo) == "dev"

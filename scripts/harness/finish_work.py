@@ -1,26 +1,34 @@
-"""leash-finish-work: remove a .worktrees/<slug> worktree + its branch.
+"""leash-finish-work: finish worktree-mode or branch-mode work.
 
-Stateless (no lockfiles). Counterpart to /leash-start-work. Refuses on a
-dirty worktree or an unmerged branch unless --keep-branch. Deletion uses
-`git branch -D` ONLY after an explicit `git merge-base --is-ancestor`
-proof against the configured merge target (local or remote-tracking) —
-never `-d`'s HEAD-relative heuristic, and never without proof. Every
-deletion is audited to .harness/finish_audit.log; work is never silently
-discarded.
+Stateless (no lockfiles). Counterpart to /leash-start-work. In worktree
+mode (default): removes a .worktrees/<slug> worktree + its branch. In
+branch mode (`workflow: branch`): finishes a `<type>/<slug>` branch in
+place — proves it merged, ends HEAD on `cfg.merge_target`, deletes the
+branch. Refuses on dirty state or an unmerged branch unless
+--keep-branch. Deletion uses `git branch -D` ONLY after an explicit
+`git merge-base --is-ancestor` proof against the configured merge target
+(local or remote-tracking) — never `-d`'s HEAD-relative heuristic, and
+never without proof. Every deletion is audited to
+.harness/finish_audit.log; work is never silently discarded.
 """
 from __future__ import annotations
 
 import argparse
 import datetime as _dt
-import os
 import subprocess
 import sys
 from pathlib import Path
 
 from scripts.harness.branches import (
     BranchConfigError,
+    WORK_BRANCH_RE,
     load_branch_config,
     prove_merged,
+)
+from scripts.harness.repo_resolve import (
+    RepoResolveError,
+    echo_context,
+    resolve_cli_repo_root,
 )
 
 
@@ -112,26 +120,93 @@ def finish_work(
     return branch
 
 
+def _tracked_dirty_and_untracked(repo_root: Path) -> tuple[bool, list[str]]:
+    lines = _git(["status", "--porcelain"], cwd=repo_root).splitlines()
+    tracked = [ln for ln in lines if ln and not ln.startswith("??")]
+    untracked = [ln[3:] for ln in lines if ln.startswith("??")]
+    return bool(tracked), untracked
+
+
+def finish_branch(
+    *, repo_root: Path, branch: str | None, keep_branch: bool = False,
+    warn=None,
+) -> str:
+    warn = warn or (lambda m: print(f"warn: {m}", file=sys.stderr))
+    try:
+        cfg = load_branch_config(repo_root)
+    except BranchConfigError as exc:
+        raise FinishWorkError(str(exc)) from exc
+    head = _current_branch(repo_root)
+    if branch is None:
+        if not WORK_BRANCH_RE.match(head):
+            raise FinishWorkError(
+                f"HEAD is on {head!r}, not a <type>/<slug> work branch; "
+                "name the branch to finish: finish_work <type>/<slug>"
+            )
+        branch = head
+    elif not WORK_BRANCH_RE.match(branch):
+        raise FinishWorkError(
+            f"{branch!r} is not a <type>/<slug> work branch name"
+        )
+    dirty, untracked = _tracked_dirty_and_untracked(repo_root)
+    if dirty:
+        raise FinishWorkError(
+            "working tree has tracked changes (staged or unstaged); "
+            "commit or stash first"
+        )
+    if untracked:
+        warn("untracked files present (they stay in the working tree): "
+             + ", ".join(untracked))
+    proven: str | None = None
+    if not keep_branch:
+        proven = prove_merged(repo_root, branch, cfg)
+        if proven is None:
+            raise FinishWorkError(
+                f"branch {branch} is unmerged — not an ancestor of "
+                f"{cfg.merge_target} (local or remote-tracking); merge it "
+                "first or pass --keep-branch. Note: squash/rebase merges "
+                "are not provable — use --keep-branch and delete manually."
+            )
+    # Prove everything BEFORE any state change.
+    sha = _git(["rev-parse", branch], cwd=repo_root).strip()
+    # End on merge_target — never base/prod (user decision in the spec).
+    _git(["checkout", cfg.merge_target], cwd=repo_root)
+    if not keep_branch:
+        assert proven is not None
+        _git(["branch", "-D", branch], cwd=repo_root)
+        _audit_delete(repo_root, branch=branch, sha=sha, proven=proven)
+    return branch
+
+
 def main(argv: list[str]) -> int:
     p = argparse.ArgumentParser()
-    p.add_argument("slug", nargs="?", default=None,
-                   help="slug under .worktrees/ to finish")
-    p.add_argument("--path", dest="worktree_path", default=None,
-                   help="explicit worktree path (overrides slug)")
     p.add_argument(
-        "--repo-root", type=Path,
-        default=Path(os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()),
+        "slug", nargs="?", default=None,
+        help="worktree slug (worktree mode) or `<type>/<slug>` branch "
+             "(branch mode; defaults to HEAD)",
     )
+    p.add_argument("--path", dest="worktree_path", default=None,
+                   help="explicit worktree path (overrides slug; worktree mode only)")
+    p.add_argument("--repo-root", type=Path, default=None)
     p.add_argument("--keep-branch", action="store_true")
     args = p.parse_args(argv[1:])
     try:
+        repo_root = resolve_cli_repo_root(args.repo_root)
+        cfg = load_branch_config(repo_root)
+        print(echo_context(repo_root, cfg, cfg.base))
+        if cfg.workflow == "branch":
+            branch = finish_branch(
+                repo_root=repo_root, branch=args.slug,
+                keep_branch=args.keep_branch,
+            )
+            kept = " (branch kept)" if args.keep_branch else ""
+            print(f"Finished work on {branch}; now on {cfg.merge_target}{kept}.")
+            return 0
         branch = finish_work(
-            repo_root=args.repo_root.resolve(),
-            slug=args.slug,
-            worktree_path=args.worktree_path,
-            keep_branch=args.keep_branch,
+            repo_root=repo_root, slug=args.slug,
+            worktree_path=args.worktree_path, keep_branch=args.keep_branch,
         )
-    except FinishWorkError as exc:
+    except (FinishWorkError, RepoResolveError, BranchConfigError) as exc:
         sys.stderr.write(f"leash-finish-work: {exc}\n")
         return 1
     kept = " (branch kept)" if args.keep_branch else ""
