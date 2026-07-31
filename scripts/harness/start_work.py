@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import argparse
 import os
-import re
 import subprocess
 import sys
 from pathlib import Path
@@ -21,11 +20,10 @@ if __name__ == "__main__" and __package__ is None:
 
 from scripts.harness.branches import (
     BranchConfigError,
+    WORK_BRANCH_RE,
     load_branch_config,
     ref_exists,
 )
-
-BRANCH_RE = re.compile(r"^(feat|fix|refactor|docs|chore)/([a-z0-9][a-z0-9-]*)$")
 
 
 class StartWorkError(RuntimeError):
@@ -108,7 +106,7 @@ def start_work(
     base_override: str | None = None,
     warn=_default_warn,
 ) -> Path:
-    m = BRANCH_RE.match(branch)
+    m = WORK_BRANCH_RE.match(branch)
     if not m:
         raise StartWorkError(
             "branch must be <type>/<slug> with type ∈ "

@@ -18,10 +18,12 @@ from pathlib import Path
 import yaml
 
 CONFIG_RELPATH = Path(".harness") / "branches.yaml"
-_ALLOWED_KEYS = {"base", "merge_target", "long_lived"}
+_ALLOWED_KEYS = {"base", "merge_target", "long_lived", "workflow"}
 # Bare branch names only: long-lived branches carry no slash and no
 # leading '-'; conservative charset keeps shell/git-arg surprises out.
 _REF_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+WORK_BRANCH_RE = re.compile(r"^(feat|fix|refactor|docs|chore)/([a-z0-9][a-z0-9-]*)$")
+_ALLOWED_WORKFLOWS = ("worktree", "branch")
 
 
 class BranchConfigError(RuntimeError):
@@ -33,6 +35,7 @@ class BranchConfig:
     base: str
     merge_target: str
     protected: frozenset[str]
+    workflow: str
 
 
 def _git_rc(repo_root: Path, *args: str) -> int:
@@ -67,6 +70,7 @@ def load_branch_config(repo_root: Path) -> BranchConfig:
             base=default,
             merge_target=default,
             protected=frozenset({"main", "master"}),
+            workflow="worktree",
         )
     try:
         raw = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -104,10 +108,20 @@ def load_branch_config(repo_root: Path) -> BranchConfig:
             )
         return name
 
+    workflow_raw = raw.get("workflow")
+    if workflow_raw is None:
+        workflow_raw = "worktree"
+    if workflow_raw not in _ALLOWED_WORKFLOWS:
+        raise BranchConfigError(
+            f"{path}: `workflow: {workflow_raw!r}` must be one of "
+            f"{list(_ALLOWED_WORKFLOWS)}"
+        )
+
     return BranchConfig(
         base=_resolve("base"),
         merge_target=_resolve("merge_target"),
         protected=frozenset(long_lived) | {"main", "master"},
+        workflow=workflow_raw,
     )
 
 
