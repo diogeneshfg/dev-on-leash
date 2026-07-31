@@ -199,12 +199,13 @@ README and SKILL.md state this requirement explicitly.
   local and remote-tracking refs); refuses a dirty tree or an
   unproven-merged branch; `--keep-branch` remains the escape for
   squash/rebase merges.
-- On success: checks out the **`base`** branch (not `merge_target`) and
-  deletes the work branch. Rationale: `base` is where the next demand
-  starts (`prod` in the field-test flow), and landing on a protected
-  branch with the gate denying writes is the *intended* idle state
-  between demands. This is an explicit choice between the two documented
-  concepts (`branches.py` docstring separates base from merge target).
+- On success: checks out the **`merge_target`** branch (`dev` in the
+  field-test flow) and deletes the work branch. Rationale (user
+  decision): the checkout must never land on `prod`; `merge_target` is
+  where the work just landed, and it is still a protected branch, so the
+  gate denying writes remains the intended idle state between demands.
+  The next `start_work` cuts from `base` regardless of where HEAD sits,
+  so ending on `merge_target` costs nothing.
 - Both modes go through A's `--repo-root` validation.
 
 ## Out of scope (explicitly considered and deferred)
@@ -244,7 +245,8 @@ warning, after the nearest-existing-ancestor resolution step.
   refusal, untracked-only warning (not refusal), already-on-work-branch
   refusal, existing-branch refusal, correct base checkout, `--no-track`.
 - `finish_work` branch mode: branch-name CLI, HEAD-default resolution,
-  merge-proof pass/fail, dirty refusal, `--keep-branch`, ends on `base`.
+  merge-proof pass/fail, dirty refusal, `--keep-branch`, ends on
+  `merge_target` (never `prod`/`base`).
 - Repo-root validation: subdirectory, workspace dir, non-repo, **linked
   worktree** — all refused; main toplevel accepted.
 - Ambiguity refusal: (a) parent-dir workspace layout, (b) session root
