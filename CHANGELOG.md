@@ -13,11 +13,12 @@ versioned `## [X.Y.Z] — <date>` heading (see `docs/RELEASING.md`), so
 - **Workflow modes: `worktree` (default) and `branch`.** `.harness/branches.yaml`
   accepts `workflow: branch` for single-branch-per-session mode (for repos that
   do not run parallel demands). In branch mode, the main checkout is read-write,
-  `/leash-finish-work` proves and lands on `merge_target`, and one session at
-  a time is enforced by the write gate. The worktree (default) and branch modes
-  now have parity in protections: the write gate judges every edit by target
-  repo ownership in both modes, blocking edits to repos without `.harness/`
-  and multi-repo workspaces.
+  `/leash-finish-work` proves and lands on `merge_target`, and branch mode
+  assumes one session per repo (the write gate does not enforce this; it is a
+  convention). The worktree (default) and branch modes now have parity in
+  protections: the write gate judges every edit by target repo ownership in
+  both modes, gating only leash-managed repos (those with `.harness/`); others
+  are never touched.
 - **Multi-root workspace support.** All harness CLIs (`start_work`, `finish_work`,
   `allow_main_write`, and scripts) now take `--repo-root` and mechanically refuse
   to guess when ambiguous (sibling leash-managed repos or workspace subfolders).
