@@ -169,3 +169,11 @@ def test_refuses_existing_worktree_dir(tmp_path: Path):
     start_work(repo_root=repo, branch="feat/x")
     with pytest.raises(StartWorkError, match="already exists"):
         start_work(repo_root=repo, branch="fix/x")
+
+
+def test_start_work_prints_echo_line(tmp_path: Path, capsys):
+    repo = tmp_path / "r"
+    _init_repo(repo)
+    start_work(repo_root=repo, branch="feat/echo-check")
+    out = capsys.readouterr().out
+    assert "repo: " in out and "base: main" in out and "mode: worktree" in out

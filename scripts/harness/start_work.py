@@ -24,6 +24,11 @@ from scripts.harness.branches import (
     load_branch_config,
     ref_exists,
 )
+from scripts.harness.repo_resolve import (
+    RepoResolveError,
+    echo_context,
+    resolve_cli_repo_root,
+)
 
 
 class StartWorkError(RuntimeError):
@@ -129,6 +134,7 @@ def start_work(
             f"base {base!r} is not a declared branch; allowed: "
             f"{sorted(cfg.protected)} (declare it in .harness/branches.yaml)"
         )
+    print(echo_context(repo_root, cfg, base))
     remote = detect_remote(repo_root, base)
     if remote:
         fetched = _run(["fetch", remote, base], repo_root, check=False)
@@ -168,16 +174,16 @@ def main(argv: list[str]) -> int:
                         ".harness/branches.yaml or be main/master)")
     p.add_argument(
         "--repo-root", type=Path,
-        default=Path(os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()),
+        default=None,
     )
     args = p.parse_args(argv[1:])
     try:
         start_work(
-            repo_root=args.repo_root.resolve(),
+            repo_root=resolve_cli_repo_root(args.repo_root),
             branch=args.branch,
             base_override=args.base_override,
         )
-    except StartWorkError as exc:
+    except (StartWorkError, RepoResolveError) as exc:
         sys.stderr.write(f"leash-start-work: {exc}\n")
         return 1
     return 0

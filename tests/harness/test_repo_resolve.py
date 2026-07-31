@@ -163,3 +163,62 @@ def test_no_candidates_single_repo(tmp_path: Path):
     a = tmp_path / "only"
     _init_repo(a)
     assert workspace_candidates(a) == []
+
+
+# --- CLI helpers --------------------------------------------------------------
+
+from scripts.harness.repo_resolve import echo_context, resolve_cli_repo_root
+
+
+def test_cli_explicit_root_validated(tmp_path: Path):
+    repo = tmp_path / "r"
+    _init_repo(repo)
+    assert paths_equal(resolve_cli_repo_root(repo), repo)
+    (repo / "sub").mkdir()
+    with pytest.raises(RepoResolveError, match="toplevel"):
+        resolve_cli_repo_root(repo / "sub")
+
+
+def test_cli_default_ambiguous_siblings_refuses(tmp_path: Path, monkeypatch):
+    a, b = tmp_path / "repo-a", tmp_path / "repo-b"
+    for r in (a, b):
+        _init_repo(r)
+        (r / ".harness").mkdir()
+        (r / ".harness" / "branches.yaml").write_text("base: main\n", encoding="utf-8")
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(a))
+    with pytest.raises(RepoResolveError) as e:
+        resolve_cli_repo_root(None)
+    assert "repo-a" in str(e.value) and "repo-b" in str(e.value)
+    assert "--repo-root" in str(e.value)
+
+
+def test_cli_default_single_repo_ok(tmp_path: Path, monkeypatch):
+    repo = tmp_path / "only"
+    _init_repo(repo)
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(repo))
+    assert paths_equal(resolve_cli_repo_root(None), repo)
+
+
+def test_cli_explicit_root_beats_ambiguity(tmp_path: Path, monkeypatch):
+    a, b = tmp_path / "repo-a", tmp_path / "repo-b"
+    for r in (a, b):
+        _init_repo(r)
+        (r / ".harness").mkdir()
+        (r / ".harness" / "branches.yaml").write_text("base: main\n", encoding="utf-8")
+    monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(a))
+    assert paths_equal(resolve_cli_repo_root(a), a)
+
+
+def test_echo_context_format(tmp_path: Path):
+    repo = tmp_path / "r"
+    _init_repo(repo)
+    from scripts.harness.branches import load_branch_config
+    cfg = load_branch_config(repo)
+    line = echo_context(repo, cfg, "main")
+    assert line == f"repo: {repo.resolve()} | config: default | base: main | mode: worktree"
+    (repo / ".harness").mkdir()
+    (repo / ".harness" / "branches.yaml").write_text(
+        "workflow: branch\n", encoding="utf-8")
+    cfg = load_branch_config(repo)
+    line = echo_context(repo, cfg, "main")
+    assert "config: .harness/branches.yaml" in line and "mode: branch" in line

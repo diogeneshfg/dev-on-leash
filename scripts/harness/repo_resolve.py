@@ -158,3 +158,35 @@ def workspace_candidates(root: Path) -> list[Path]:
         return []
     return sorted([resolved, *siblings],
                   key=lambda p: os.path.normcase(str(p)))
+
+
+def resolve_cli_repo_root(explicit: Path | None) -> Path:
+    """Validated target repo root for a CLI run.
+
+    Explicit --repo-root: validated, always wins. Default root: refused
+    when the layout is ambiguous (multi-root workspace) — the refusal
+    lists candidates and how to satisfy the gate.
+    """
+    if explicit is not None:
+        return validate_repo_root(explicit)
+    default = Path(
+        os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
+    ).resolve()
+    candidates = workspace_candidates(default)
+    if candidates:
+        listing = "\n".join(f"  - {p}" for p in candidates)
+        raise RepoResolveError(
+            "multiple candidate repos detected (multi-root workspace); "
+            "pass --repo-root explicitly. Candidates:\n"
+            f"{listing}\n"
+            f"(--repo-root {default} keeps the current default)"
+        )
+    return validate_repo_root(default)
+
+
+def echo_context(repo_root: Path, cfg, base: str) -> str:
+    """One context line every CLI prints: repo | config | base | mode."""
+    cfg_path = repo_root / ".harness" / "branches.yaml"
+    src = ".harness/branches.yaml" if cfg_path.is_file() else "default"
+    return (f"repo: {repo_root.resolve()} | config: {src} | "
+            f"base: {base} | mode: {cfg.workflow}")
