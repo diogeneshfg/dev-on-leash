@@ -63,3 +63,9 @@ linked worktree.
 For a one-off direct edit to the main tree, authorize a single write:
 `python -m scripts.harness.allow_main_write "<reason>"` (logged to
 `.harness/exceptions.log`), then retry the edit.
+
+Repos with `workflow: branch` in `.harness/branches.yaml` use disciplined
+checkouts instead of worktrees: `/leash-start-work` runs `git checkout -b
+<type>/<slug>` in place rather than creating a linked worktree, and edits
+are allowed only while HEAD is on a `<type>/<slug>` branch — everything
+else is denied by the same gate.

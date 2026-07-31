@@ -37,7 +37,7 @@ move the session.
 2. **Run the mechanical backend** from the main checkout:
 
    ```
-   python -m scripts.harness.start_work <type>/<slug> [--base <branch>]
+   python -m scripts.harness.start_work <type>/<slug> [--base <branch>] [--repo-root <path>]
    ```
 
    Base resolution precedence: `--base` argument → `base:` in
@@ -66,6 +66,34 @@ move the session.
    actually started from — and remind that every `Edit`, `Write`, and file
    `Read` for this change targets paths under `.worktrees/<slug>`, while the
    session itself stays rooted in the main checkout.
+
+## Multi-root workspaces
+
+When the VS Code workspace holds several repos, ALWAYS pass
+`--repo-root <target repo>` — determine the demand's target repo FIRST
+and never trust the session cwd. The backend mechanically refuses to
+run without it when it can detect the layout (sibling leash-managed
+repos, or a workspace folder with child repos) and lists the
+candidates; layouts it cannot detect (folders from unrelated parents)
+are exactly why the explicit flag is mandatory practice. The script
+echoes `repo: … | config: … | base: … | mode: …` — read it back and
+confirm it matches the demand before editing anything.
+
+Deployment note: the write-gate hook runs from the session-root
+project's settings, so the session must be rooted in a leash-
+**bootstrapped** repo for the gate to protect the workspace's sibling
+repos; keep harness versions aligned with `/leash-update`.
+
+## `workflow: branch` mode
+
+A repo whose `.harness/branches.yaml` declares `workflow: branch` gets a
+disciplined checkout instead of a worktree: same base resolution and
+refusals, then `git checkout -b <type>/<slug>` in place. One demand at a
+time per repo (the backend refuses a second). Edits happen in the normal
+project paths; the write gate allows them only while HEAD is on the work
+branch. Use worktree mode when a repo needs several parallel demands.
+Branch mode assumes ONE session per repo — concurrent sessions on the
+same branch-mode repo are not protected against each other.
 
 ## Cleanup
 

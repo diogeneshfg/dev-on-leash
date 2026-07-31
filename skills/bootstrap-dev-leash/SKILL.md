@@ -50,6 +50,7 @@ Collect:
 | 11 | Coverage targets | free-text | `{{COVERAGE_TARGETS}}` |
 | 12 | Parallel-work worktree layout? | `AskUserQuestion` (yes / no) | keep or drop the `.worktrees/` gitignore patch (Step 3c) |
 | 13 | Long-lived branches besides main? (dev/qa/homol/prod) | AskUserQuestion (yes / no) + free-text follow-up | {{BASE_BRANCH}} + .harness/branches.yaml (Step 3d) |
+| 13b | Workflow mode: worktree (default; parallel demands per repo) or branch (plain checkouts; one demand per repo, one session per repo — fits multi-root workspaces)? | `AskUserQuestion` (worktree / branch) | `workflow:` in `.harness/branches.yaml` (Step 3d) |
 | 14 | Antagonist critics on specs/plans? | `AskUserQuestion` (yes / no) | keep or drop `OPTIONAL:ANTAGONIST_CRITICS`; write or skip `.harness/critics.json` (Step 3e) |
 
 Notes on specific items:
@@ -66,12 +67,23 @@ Notes on specific items:
   at once.
 - **Long-lived branches (item 13):** if no, `{{BASE_BRANCH}}` renders as
   `main` (or `master` — match the repo's default branch) and no
-  `branches.yaml` is written. If yes, follow up in free text for: the list
-  of long-lived branches, the default base for new work (e.g. `prod` when
-  production trails dev), and the merge target where work branches land
-  (e.g. `dev`). `{{BASE_BRANCH}}` renders as the chosen base. This never
-  weakens branch discipline — the long-lived branches become *protected*
-  (no direct work on them), exactly like main/master.
+  `branches.yaml` is written (unless item 13b picks `branch`, which still
+  requires the file — see below). If yes, follow up in free text for: the
+  list of long-lived branches, the default base for new work (e.g. `prod`
+  when production trails dev), and the merge target where work branches
+  land (e.g. `dev`). `{{BASE_BRANCH}}` renders as the chosen base. This
+  never weakens branch discipline — the long-lived branches become
+  *protected* (no direct work on them), exactly like main/master.
+- **Workflow mode (item 13b):** always ask, regardless of item 13's
+  answer. `worktree` is the default — `/leash-start-work` creates
+  `.worktrees/<slug>` and several demands can run in parallel per repo.
+  `branch` fits multi-root workspaces: `/leash-start-work` does a plain
+  `git checkout -b <type>/<slug>` in place instead, one demand at a time
+  per repo, and assumes one session per repo. The answer is written as
+  `workflow: <answer>` into `.harness/branches.yaml` (Step 3d) — if item 13
+  was "no" but item 13b is "branch", `.harness/branches.yaml` is still
+  written (with `base`/`merge_target` defaulted from `{{BASE_BRANCH}}` and
+  an empty `long_lived` list) purely to carry the `workflow:` key.
 - **Antagonist critics (item 14):** if yes, ask a follow-up `AskUserQuestion`
   (multiSelect) for which top-tier models to use as critics — current list:
   `opus`, `fable` — defaulting to both selected.
@@ -209,17 +221,25 @@ ignoring it keeps worktree checkouts out of commits. Idempotent — an exact
 match anywhere in the file counts as present; never duplicate. If the user
 declined item 12, make no `.worktrees/` change.
 
-## Step 3d — Write the branches config (only if item 13 = yes)
+## Step 3d — Write the branches config (item 13 = yes, or item 13b = branch)
 
 Write `.harness/branches.yaml` by hand (same pattern as Step 3b's
-`.harness/gates` — no template file):
+`.harness/gates` — no template file) whenever item 13 was answered "yes"
+**or** item 13b picked `branch`:
 
 ```yaml
 # dev-on-leash: multi-branch config. See README "Multi-branch projects".
 base: <default base from the interview>
 merge_target: <merge target from the interview>
 long_lived: [<the declared branches>]
+workflow: <worktree | branch>
 ```
+
+If item 13 was "no" (no long-lived branches beyond main), default `base`
+and `merge_target` to `{{BASE_BRANCH}}` and leave `long_lived` empty —
+the file exists solely to carry `workflow: branch`. If item 13b picked
+the default `worktree`, the `workflow:` line may be omitted (the backend
+defaults to `worktree` when the key is absent).
 
 Do NOT overwrite an existing `branches.yaml` — show a diff and confirm,
 like the Step 3 discipline files. The init script (Step 4) never touches

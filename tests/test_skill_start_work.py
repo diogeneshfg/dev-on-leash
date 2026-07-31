@@ -56,3 +56,11 @@ def test_refuses_main():
     text = SKILL_PATH.read_text(encoding="utf-8").lower()
     # Never land work on main/master — branch discipline.
     assert "never" in text or "refuse" in text
+
+
+def test_skill_documents_repo_root_and_multi_root():
+    text = Path("skills/leash-start-work/SKILL.md").read_text(encoding="utf-8")
+    assert "--repo-root" in text
+    assert "multi-root" in text.lower()
+    assert "workflow: branch" in text
+    assert "bootstrapped" in text          # session-root deployment constraint

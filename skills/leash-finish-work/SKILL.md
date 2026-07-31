@@ -43,6 +43,15 @@ directory and, by default, the merged branch. Counterpart to
      the explicit proof, and every deletion is audited to
      `.harness/finish_audit.log`
 
+## Branch mode
+
+In a `workflow: branch` repo, pass the `<type>/<slug>` branch name (or
+nothing, to finish the current HEAD branch). The backend proves the
+branch merged into `merge_target`, checks out `merge_target` (never the
+base), and deletes the branch — `--keep-branch` for squash/rebase
+merges. Tracked changes block; untracked files only warn. Always pass
+`--repo-root` in multi-root workspaces.
+
 ## Flags
 
 - `--keep-branch` — remove the worktree directory but keep the branch
