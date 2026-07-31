@@ -66,3 +66,11 @@ def test_readme_documents_antagonist_critics():
     text = (ROOT / "README.md").read_text(encoding="utf-8")
     assert "antagonist" in text.lower()
     assert ".harness/critics.json" in text
+
+
+def test_readme_documents_both_workflows():
+    text = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert "workflow: branch" in text
+    assert "one session per repo" in text.lower()
+    assert "multi-root" in text.lower()
+    assert "/leash-update" in text
